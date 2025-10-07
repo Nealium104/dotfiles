@@ -9,17 +9,24 @@ config.enable_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = true
 config.window_background_opacity = 0
 config.win32_system_backdrop = 'Acrylic'
+config.win32_acrylic_accent_color = "#7e56c2"
 config.window_padding = {
 	left = 0,
 	right = 0,
 	top = 0,
 	bottom = 0,
 }
--- config.colors = {
--- 	tab_bar = {
--- 		background = "#202020"
--- 	}
--- }
+config.colors = {
+	visual_bell = '#313d4e'
+}
+config.audible_bell = 'Disabled'
+config.visual_bell = {
+	fade_in_function = 'EaseIn',
+	fade_in_duration_ms = 50,
+	fade_out_function = 'EaseOut',
+	fade_out_duration_ms = 50
+}
+
 config.font = wezterm.font('CaskaydiaCove Nerd Font Mono')
 
 -- event handlers
@@ -49,12 +56,12 @@ config.keys = {
 	},
 	{
 		key = 'j',
-		mods = 'ALT',
+		mods = 'ALT|CTRL',
 		action = act.EmitEvent "high-opacity"
 	},
 	{
-		key = 'h',
-		mods = 'ALT',
+		key = 'k',
+		mods = 'ALT|CTRL',
 		action = act.EmitEvent "low-opacity"
 	},
 }
