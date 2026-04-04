@@ -135,23 +135,26 @@
               state: started
               enabled: yes
 
+      - name: Remove existing configs that would conflict with stow
+        ansible.builtin.file:
+          path: "{{ item }}"
+          state: absent
+        loop:
+          - "{{ ansible_env.HOME }}/.bashrc"
+          - "{{ ansible_env.HOME }}/.config/nvim"
+          - "{{ ansible_env.HOME }}/.config/posh"
+          - "{{ ansible_env.HOME }}/.config/wezterm"
+          - "{{ ansible_env.HOME }}/.config/alacritty"
+          - "{{ ansible_env.HOME }}/.tmux.conf"
+
       - name: Stow Local Configs
-        ansible.builtin.shell: 
+        ansible.builtin.shell:
           cmd: "stow -v -t {{ lookup('env', 'HOME') }} {{ item }}"
           chdir: "{{ dotfiles_dir }}"
         loop: "{{ stow_packages }}"
         register: stow_result
         changed_when: "'LINK' in stow_result.stderr"
         
-      - name: Clone Neovim Config
-        become: false
-        ansible.builtin.git:
-          repo: "{{ neovim_repo_url }}"
-          dest: "{{ ansible_env.HOME }}/.config/nvim"
-          version: main
-          update: yes
-          force: yes
-
       always:
         - name: cleanup temp files
           ansible.builtin.file:

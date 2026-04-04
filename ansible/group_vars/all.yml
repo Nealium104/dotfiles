@@ -1,5 +1,4 @@
 neovim_version: stable
-neovim_repo_url: "https://github.com/Nealium104/neovim-config.git"
 
 node_major_version: 24.x
 
@@ -17,5 +16,10 @@ packages:
   - jq
 
 stow_packages:
+  - bash
+  - nvim
+  - posh
+  - wezterm
+  - alacritty
   - tmux
   - scripts
