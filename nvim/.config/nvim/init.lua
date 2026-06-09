@@ -1,6 +1,9 @@
 require("config.lazy")
 require("config.filetypes")
 
+-- Colorscheme
+vim.cmd.colorscheme("everforest")
+
 -- filetype assertions
 vim.filetype.add({
   extension = {
@@ -26,17 +29,25 @@ if vim.fn.executable('xclip') == 1 then
 end
 
 -- Numbers
-vim.opt.number = true
+vim.opt.number = true -- line number
 vim.opt.relativenumber = true
+vim.opt.wrap = false -- don't wrap lines
+vim.opt.sidescrolloff = 10 -- keep 10 characters left and right of cursor
 
 -- Looks
-vim.opt.expandtab = true
-vim.opt.tabstop = 4
+vim.opt.expandtab = true -- use spaces instead of tabs
+vim.opt.tabstop = 4 -- use 4 spaces per tab
+vim.opt.smartindent = true -- smart auto-indent
+vim.opt.autoindent = true -- get indent from current line
+vim.opt.signcolumn = "yes" -- show sign column
 vim.opt.shiftwidth = 4
 vim.opt.softtabstop = 4
-vim.opt.scrolloff = 8
+vim.opt.scrolloff = 10 -- keep 10 lines above and below of cursor
 vim.opt.termguicolors = true
 vim.opt.list = true
+vim.opt.ignorecase = true -- ignore case for searches
+vim.opt.swapfile = false -- do not create swapfiles
+vim.opt.autoread = true -- reload the file if changes outside neovim happen
 vim.opt.listchars = {
 	tab = '~ ',
 	trail = '•',

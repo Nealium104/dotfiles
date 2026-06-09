@@ -19,7 +19,7 @@ vim.filetype.add({
         [".*/playbooks/.*%.yml"]    = "yaml.ansible",
         [".*/roles/.*%.yml"]        = "yaml.ansible",
         ["ansible.yml"]             = "yaml.ansible",
-        [".*%prod.*%conf"]          = "nginx",
+        [".*prod.*%.conf"]          = "nginx",
         [".*nginx.*%.conf"]         = "nginx",
     },
 })
