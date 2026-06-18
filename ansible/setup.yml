@@ -41,7 +41,7 @@
               dest: "{{ tmp.path }}"
               remote_src: yes # file exists on this machine, through localhost
             check_mode: false
-        
+
           - name: Install neovim to /opt
             become: true
             ansible.builtin.copy:
@@ -154,7 +154,7 @@
         loop: "{{ stow_packages }}"
         register: stow_result
         changed_when: "'LINK' in stow_result.stderr"
-        
+
       always:
         - name: cleanup temp files
           ansible.builtin.file:

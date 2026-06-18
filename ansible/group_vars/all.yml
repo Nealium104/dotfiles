@@ -14,6 +14,7 @@ packages:
   - tmux
   - unzip
   - jq
+  - zoxide
 
 stow_packages:
   - bash
@@ -22,4 +23,3 @@ stow_packages:
   - wezterm
   - alacritty
   - tmux
-  - scripts

@@ -136,7 +136,7 @@ export EDITOR=nvim
 # Config for WezTerm
 export WEZTERM_CONFIG_FILE=~/.config/wezterm/wezterm.lua
 
-neofetch
+fastfetch
 export BROWSER=wslview
 
 # Generated for envman. Do not edit.
