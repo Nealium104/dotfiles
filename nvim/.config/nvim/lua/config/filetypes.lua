@@ -1,7 +1,7 @@
 vim.filetype.add({
     extension = {
         yml = function(path, bufnr)
-            if path:match("playbooks") or path:match("roles") or path:match("tasks") then
+            if path:match("/playbooks/") or path:match("/roles/") or path:match("/tasks/") then
                 return "yaml.ansible"
             end
 

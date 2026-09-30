@@ -9,6 +9,8 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH=$PATH:/usr/local/go/bin
 export PATH="$HOME/src/git-filter-repo:$PATH"
 
+export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/bin/vaultpw.sh"
+
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;
@@ -82,7 +84,6 @@ esac
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
     #alias dir='dir --color=auto'
     #alias vdir='vdir --color=auto'
 
@@ -94,10 +95,7 @@ fi
 # colored GCC warnings and errors
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
+alias ls='eza'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
@@ -138,6 +136,8 @@ export WEZTERM_CONFIG_FILE=~/.config/wezterm/wezterm.lua
 
 fastfetch
 export BROWSER=wslview
+
+export ANSIBLE_SSH_ARGS='-o ControlMaster=auto -o ControlPersist=60s -o ServerAliveInterval=5'
 
 # Generated for envman. Do not edit.
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"

@@ -1,15 +1,25 @@
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
-config.default_prog = { 'wsl.exe', '--cd', '~' }
+-- WSL
+config.wsl_domains = {
+    {
+        name = 'WSL:Ubuntu',
+        distribution = 'Ubuntu',
+        default_cwd = '~',
+    },
+}
+config.default_domain = 'WSL:Ubuntu'
+config.automatically_reload_config = true
 
-config.font_size = 14
+-- window
+config.color_scheme = 'Catppuccin Macchiato'
 config.use_fancy_tab_bar = false
 config.enable_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = true
-config.window_background_opacity = 0
+config.window_background_opacity = 1
 config.win32_system_backdrop = 'Acrylic'
-config.win32_acrylic_accent_color = "#7e56c2"
+config.win32_acrylic_accent_color = "#303446"
 config.window_padding = {
     left = 0,
     right = 0,
@@ -27,23 +37,23 @@ config.visual_bell = {
     fade_out_duration_ms = 50
 }
 
+-- text
 config.font = wezterm.font('CaskaydiaCove Nerd Font Mono')
+config.font_size = 14
 
 -- event handlers
 wezterm.on("high-opacity", function(window, _)
-    local opacity = .25
-    window:set_config_overrides({
-        window_background_opacity = opacity,
-        win32_system_backdrop = 'Disable'
-    })
+    local overrides = window:get_config_overrides() or {}
+    overrides.window_background_opacity = .25
+    overrides.win32_system_backdrop = 'Disable'
+    window:set_config_overrides(overrides)
 end)
 
 wezterm.on("low-opacity", function(window, _)
-    local opacity = 0
-    window:set_config_overrides({
-        window_background_opacity = opacity,
-        win32_system_backdrop = 'Acrylic'
-    })
+    local overrides = window:get_config_overrides() or {}
+    overrides.window_background_opacity = 0
+    overrides.win32_system_backdrop = 'Acrylic'
+    window:set_config_overrides(overrides)
 end)
 
 -- Keybinds
@@ -68,6 +78,7 @@ config.keys = {
         key = 't',
         mods = 'CTRL',
         action = act.SpawnCommandInNewTab {
+            domain = { DomainName = 'local' },
             args = { 'powershell.exe' },
         },
     },

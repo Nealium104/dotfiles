@@ -7,7 +7,7 @@ return {
       -- Inline virtual text showing variable values next to your code
       "theHamsta/nvim-dap-virtual-text",
       -- Installs the debug adapter binary (vscode-php-debug) and wires it up
-      { "jay-babu/mason-nvim-dap.nvim", dependencies = { "williamboman/mason.nvim" } },
+      { "jay-babu/mason-nvim-dap.nvim", dependencies = { "mason-org/mason.nvim" } },
     },
     config = function()
       local dap = require("dap")
@@ -18,7 +18,6 @@ return {
       --    everything in `ensure_installed`, which creates `dap.adapters.php`
       --    pointing at the installed vscode-php-debug. Run :Mason to watch it
       --    install on first launch (or :MasonInstall php-debug-adapter).
-      require("mason").setup()
       require("mason-nvim-dap").setup({
         ensure_installed = { "php" },
         automatic_installation = true,
