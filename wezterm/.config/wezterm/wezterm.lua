@@ -38,7 +38,7 @@ config.visual_bell = {
 }
 
 -- text
-config.font = wezterm.font('CaskaydiaCove Nerd Font Mono')
+config.font = wezterm.font('Hasklug Nerd Font Mono')
 config.font_size = 14
 
 -- event handlers
