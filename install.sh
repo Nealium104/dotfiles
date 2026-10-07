@@ -7,7 +7,8 @@ repo="$(dirname "$(readlink -f "$0")")"
 # --versions prints what's installed and exits without changing anything.
 # --upgrade also upgrades every tool that isn't pinned.
 # --cleanup runs cleanup.yml (removes replaced tools) instead of setup.yml.
-# anything else is passed straight to ansible-playbook
+# anything else is passed straight to ansible-playbook (e.g. --check, or -K to
+# be prompted for the become password if sudo caching is disabled)
 upgrade=false
 playbook=setup.yml
 args=()
@@ -26,6 +27,17 @@ for arg in "$@"; do
     *) args+=("$arg") ;;
   esac
 done
+
+# ask for the sudo password once. ansible's become reuses sudo's cached
+# credentials, so keep them fresh for as long as this script runs (the cargo
+# builds can outlast sudo's 15 minute timeout)
+sudo -v
+while kill -0 "$$" 2>/dev/null; do
+  sudo -n true
+  sleep 60
+done 2>/dev/null &
+keepalive=$!
+trap 'kill "$keepalive" 2>/dev/null' EXIT
 
 sudo apt update
 
@@ -50,4 +62,4 @@ cd "$repo/ansible" || exit 1
 # password script that may not exist on this machine, which is a hard error
 unset ANSIBLE_VAULT_PASSWORD_FILE
 
-ansible-playbook --ask-become-pass "${args[@]}" "$playbook"
+ansible-playbook "${args[@]}" "$playbook"
