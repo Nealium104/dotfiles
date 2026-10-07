@@ -1,0 +1,28 @@
+name: install
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install ansible-lint
+      - run: make lint
+
+  # a hosted runner is plain x86-64 Ubuntu with passwordless sudo: the same
+  # path a non-WSL machine takes. the WSL-only steps can't be covered here
+  install:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fresh install
+        run: ./install.sh
+      - name: Second run finds nothing left to fix
+        run: ./install.sh
+      - name: Everything is at its pinned version
+        run: |
+          ./install.sh --versions | tee versions.txt
+          ! grep -E 'missing|differs' versions.txt

@@ -7,12 +7,16 @@
   # setup.yml, add the old one below.
 
   vars:
-    home: "{{ ansible_env.HOME }}"
+    home: "{{ ansible_facts.env.HOME }}"
+    wsl_open: "{{ node_bin }}/wsl-open"
 
     old_files:
       - { path: "{{ home }}/.local/bin/oh-my-posh", replaced_by: "{{ home }}/.cargo/bin/starship" }
       - { path: "{{ home }}/.cache/oh-my-posh", replaced_by: "{{ home }}/.cargo/bin/starship" }
+      - { path: "{{ home }}/.local/bin/lsd", replaced_by: "{{ home }}/.cargo/bin/eza" }
+      - { path: "{{ home }}/.local/opt/lsd-v1.1.5", replaced_by: "{{ home }}/.cargo/bin/eza" }
       - { path: "{{ home }}/.local/bin/fd", replaced_by: "{{ home }}/.cargo/bin/fd" }
+      - { path: "{{ home }}/.local/bin/tree-sitter", replaced_by: "{{ home }}/.cargo/bin/tree-sitter" }
       - { path: "{{ home }}/.local/bin/zoxide", replaced_by: "{{ home }}/.cargo/bin/zoxide" }
       - { path: "{{ home }}/.local/bin/uv", replaced_by: "{{ home }}/.cargo/bin/uv" }
       - { path: "{{ home }}/.local/bin/uvx", replaced_by: "{{ home }}/.cargo/bin/uv" }
@@ -22,14 +26,47 @@
       # ~/go (installed go binaries) is left alone
       - { path: "{{ home }}/.local/opt/go", replaced_by: /usr/local/go/bin/go }
       - { path: "{{ home }}/.local/opt/go-v1.22.5", replaced_by: /usr/local/go/bin/go }
+      # node comes from fnm now. nvm's node versions and the global packages
+      # in them go with it
+      - { path: "{{ home }}/.nvm", replaced_by: "{{ home }}/.local/bin/fnm" }
+      # the npm tldr client's page cache; tealdeer keeps its own
+      - { path: "{{ home }}/.tldr", replaced_by: "{{ home }}/.local/bin/tldr" }
+      - { path: "{{ home }}/.config/neofetch", replaced_by: /usr/bin/fastfetch }
+      - { path: "{{ home }}/.config/wslu", replaced_by: "{{ wsl_open }}" }
+      # install.sh runs ansible from uv now. the commands pipx linked that uv
+      # doesn't are caught by the broken symlink sweep below
+      - path: "{{ home }}/.local/share/pipx/venvs/ansible"
+        replaced_by: "{{ home }}/.local/share/uv/tools/ansible-core"
+      # setup.yml installs these with uv now
+      - path: "{{ home }}/.local/share/pipx/venvs/ansible-lint"
+        replaced_by: "{{ home }}/.local/share/uv/tools/ansible-lint"
+      # nvim gets its language servers from mason
+      - path: "{{ home }}/.local/bin/nginx-language-server"
+        replaced_by: "{{ home }}/.local/share/nvim/mason/bin/nginx-language-server"
+      - path: "{{ home }}/.local/share/pipx/venvs/nginx-language-server"
+        replaced_by: "{{ home }}/.local/share/nvim/mason/bin/nginx-language-server"
+      - path: "{{ home }}/.local/bin/lua-language-server"
+        replaced_by: "{{ home }}/.local/share/nvim/mason/bin/lua-language-server"
+      - path: "{{ home }}/downloads/lua-language-server"
+        replaced_by: "{{ home }}/.local/share/nvim/mason/bin/lua-language-server"
 
     old_root_files:
       - { path: /etc/apt/sources.list.d/nodesource.list, replaced_by: "{{ home }}/.nvm/versions/node" }
       - { path: /etc/apt/keyrings/nodesource.asc, replaced_by: "{{ home }}/.nvm/versions/node" }
       # hand-added copies of repos that setup.yml now writes itself
-      - path: /etc/apt/sources.list.d/zhangsongcui3371-ubuntu-fastfetch-jammy.list
-        replaced_by: /etc/apt/sources.list.d/ppa_zhangsongcui3371_fastfetch_jammy.list
       - { path: /etc/apt/sources.list.d/docker.sources, replaced_by: /etc/apt/sources.list.d/docker.list }
+      # keyrings from before setup.yml kept every repo's key in /etc/apt/keyrings
+      - path: /usr/share/keyrings/githubcli-archive-keyring.gpg
+        replaced_by: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+      - { path: /usr/share/keyrings/hashicorp-archive-keyring.gpg, replaced_by: /etc/apt/keyrings/hashicorp.asc }
+      # the interop name only wslu needed
+      - { path: /etc/binfmt.d/WSLInterop.conf, replaced_by: "{{ wsl_open }}" }
+      # hand installs that sit ahead of apt's on PATH. rocks installed with the
+      # old luarocks (/usr/local/lib/luarocks) are left alone
+      - { path: /usr/local/bin/luarocks, replaced_by: /usr/bin/luarocks }
+      - { path: /usr/local/bin/luarocks-admin, replaced_by: /usr/bin/luarocks }
+      - { path: /usr/local/share/lua/5.4/luarocks, replaced_by: /usr/bin/luarocks }
+      - { path: /usr/local/bin/mkcert, replaced_by: /usr/bin/mkcert }
 
     old_apt_packages:
       - { name: nodejs, replaced_by: "{{ home }}/.nvm/versions/node" }
@@ -37,6 +74,13 @@
       - { name: fd-find, replaced_by: "{{ home }}/.cargo/bin/fd" }
       - { name: zoxide, replaced_by: "{{ home }}/.cargo/bin/zoxide" }
       - { name: fzf, replaced_by: "{{ home }}/.local/bin/fzf" }
+      - { name: bat, replaced_by: "{{ home }}/.cargo/bin/bat" }
+      - { name: wslu, replaced_by: "{{ wsl_open }}" }
+      - { name: neofetch, replaced_by: /usr/bin/fastfetch }
+      - { name: asciinema, replaced_by: "{{ home }}/.cargo/bin/asciinema" }
+      # install.sh runs ansible from uv
+      - { name: ansible, replaced_by: "{{ home }}/.local/bin/ansible-playbook" }
+      - { name: ansible-core, replaced_by: "{{ home }}/.local/bin/ansible-playbook" }
 
   tasks:
     - name: Remove replaced files

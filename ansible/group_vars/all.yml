@@ -1,12 +1,12 @@
 # `./install.sh --upgrade` sets this: brings everything that isn't pinned to its
-# latest release. neovim, go, nvm, fzf, yq and the cargo tools are pinned below; bump
-# their versions instead. `./install.sh --versions` shows where things stand
+# latest release. everything with a version below is pinned; bump the version
+# instead. `./install.sh --versions` shows where things stand
 upgrade: false
 
 # a release tag; "stable" can't be compared against `nvim --version`
 neovim_version: v0.12.3
 
-nvm_version: v0.40.8
+fnm_version: v1.39.0
 node_version: 24
 
 go_version: 1.27.1
@@ -15,12 +15,45 @@ fzf_version: 0.74.4
 
 yq_version: v4.54.1
 
+hadolint_version: v2.15.1
+
+tealdeer_version: v1.9.0
+
+rclone_version: v1.75.1
+
+# install.sh installs this before the playbook runs, and reads the pin from here
+binstall_version: v1.25.2
+
 dotfiles_dir: "{{ playbook_dir | dirname }}"
+
+is_wsl: "{{ 'microsoft' in ansible_facts.kernel | lower }}"
+
+# where fnm keeps the default node; .bashrc puts the same directory on PATH
+node_bin: "{{ ansible_facts.env.HOME }}/.local/share/fnm/aliases/default/bin"
+
+# single executables downloaded from a github release into ~/.local/bin. an
+# entry is reinstalled when `<name> --version` doesn't mention its version
+release_binaries:
+  - name: fzf # apt's is years behind and lacks `fzf --bash`
+    version: "{{ fzf_version }}"
+    url: "https://github.com/junegunn/fzf/releases/download/v{{ fzf_version }}/fzf-{{ fzf_version }}-linux_amd64.tar.gz"
+  - name: yq
+    version: "{{ yq_version }}"
+    url: "https://github.com/mikefarah/yq/releases/download/{{ yq_version }}/yq_linux_amd64"
+  - name: fnm # node version manager
+    version: "{{ fnm_version }}"
+    url: "https://github.com/Schniz/fnm/releases/download/{{ fnm_version }}/fnm-linux.zip"
+  - name: tldr # tealdeer
+    version: "{{ tealdeer_version }}"
+    url: "https://github.com/tealdeer-rs/tealdeer/releases/download/{{ tealdeer_version }}/tealdeer-linux-x86_64-musl"
+  - name: hadolint # not in apt
+    version: "{{ hadolint_version }}"
+    url: "https://github.com/hadolint/hadolint/releases/download/{{ hadolint_version }}/hadolint-linux-x86_64"
 
 packages:
   - build-essential
-  - cmake # needed to build uv and xh from source
-  - git # install.sh duplication
+  - cmake # for rust tools that have to be built from source
+  - git
   - stow
   - tmux
   - unzip
@@ -30,22 +63,63 @@ packages:
   - util-linux
   - python3-venv # mason needs it for python-based tools
   - shellcheck
+  - xclip # nvim's clipboard fallback
+  - ffmpeg
+  - btop
+  - lua5.4
+  - luarocks
+  - yamllint
+  - pandoc
+  - pv
+  - moreutils
+  - mkcert
+  - direnv # per-project environment variables, from a .envrc
+  - pinentry-curses # rbw asks for the vault password through it
+  # from the repos in apt_repos below
+  - gh
+  - vagrant
+  - fastfetch
   - php-cli
   # extensions composer wants for downloading and unpacking packages
   - php-curl
   - php-mbstring
   - php-xml
   - php-zip
+  - php-xdebug # nvim's php debugger attaches to it
 
+# third-party apt repos. the key is re-downloaded and the list file rewritten
+# before the first cache update, so a rotated signing key fixes itself on the
+# next run. name is the file in /etc/apt/sources.list.d
+apt_repos:
+  - name: github-cli
+    key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+    key_dest: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    repo: https://cli.github.com/packages stable main
+  - name: docker
+    key_url: https://download.docker.com/linux/ubuntu/gpg
+    key_dest: /etc/apt/keyrings/docker.asc
+    repo: "https://download.docker.com/linux/ubuntu {{ ansible_facts.distribution_release }} stable"
+  - name: hashicorp # vagrant
+    key_url: https://apt.releases.hashicorp.com/gpg
+    key_dest: /etc/apt/keyrings/hashicorp.asc
+    repo: "https://apt.releases.hashicorp.com {{ ansible_facts.distribution_release }} main"
+  # a launchpad PPA; the key is looked up by the fingerprint launchpad lists for it
+  - name: fastfetch
+    key_url: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xEB65EE19D802F3EB1A13CFE47E2E5CB4D4865F21
+    key_dest: /etc/apt/keyrings/fastfetch.asc
+    repo: "https://ppa.launchpadcontent.net/zhangsongcui3371/fastfetch/ubuntu {{ ansible_facts.distribution_release }} main"
+
+# installed with cargo-binstall: the project's own release binary where it
+# publishes one, built from source where it doesn't (git-delta, rbw, tokei).
 # name is the crate, bin is the executable it installs
 cargo_packages:
-  # not in apt, and the prebuilt binaries need a newer glibc than Ubuntu 22.04 ships
   - { name: tree-sitter-cli, bin: tree-sitter, version: 0.27.0 }
   - { name: eza, bin: eza, version: 0.23.5 }
   - { name: ripgrep, bin: rg, version: 15.2.0 }
   - { name: fd-find, bin: fd, version: 10.5.0 }
   - { name: zoxide, bin: zoxide, version: 0.10.0 }
   - { name: starship, bin: starship, version: 1.26.0 }
+  # install.sh reads this line: it installs uv first, to run ansible from
   - { name: uv, bin: uv, version: 0.12.23 }
   - { name: bat, bin: bat, version: 0.26.1 }
   - { name: git-delta, bin: delta, version: 0.20.1 }
@@ -53,6 +127,36 @@ cargo_packages:
   - { name: du-dust, bin: dust, version: 1.2.6 }
   - { name: hyperfine, bin: hyperfine, version: 1.21.0 }
   - { name: xh, bin: xh, version: 0.26.2 }
+  - { name: difftastic, bin: difft, version: 0.69.0 }
+  - { name: rbw, bin: rbw, version: 1.15.0 }
+  - { name: watchexec-cli, bin: watchexec, version: 2.8.0 }
+  - { name: sd, bin: sd, version: 1.0.0 }
+  - { name: tokei, bin: tokei, version: 15.0.0 }
+  - { name: asciinema, bin: asciinema, version: 3.2.0 }
+
+# python command-line tools, installed with `uv tool`: each gets its own
+# virtualenv and its command linked into ~/.local/bin. (ansible itself is
+# installed the same way by install.sh, before this playbook can run)
+uv_tools:
+  - ansible-lint
+  - ty
+
+# installed globally into the node that fnm provides. no language servers:
+# nvim gets those from mason. a new node release starts
+# with none of them, so they're checked on every run
+npm_packages:
+  - "@google/gemini-cli"
+  - "@openai/codex"
+  - "@prettier/plugin-php"
+  - git-standup
+  - neovim
+  - obsidian-headless
+  - prettier
+  - purgecss
+  - typescript
+
+npm_packages_wsl:
+  - wsl-open # .bashrc makes it $BROWSER, so links open on the windows side
 
 # written to ~/.local/share/bash-completion/completions/<name>, where
 # bash-completion loads them on first use (no shell startup cost)
@@ -68,6 +172,8 @@ bash_completions:
   - { name: delta, cmd: delta --generate-completion bash }
   - { name: xh, cmd: xh --generate complete-bash }
   - { name: yq, cmd: yq shell-completion bash }
+  - { name: rbw, cmd: rbw gen-completions bash }
+  - { name: fnm, cmd: fnm completions --shell bash }
 
 # fonts the terminal and prompt configs ask for. on WSL they're installed on
 # the windows side with chocolatey (choco is the package id); on native linux
@@ -82,6 +188,11 @@ nerd_fonts:
 
 stow_packages:
   - bash
+  - bat
+  - bottom
+  - btop # only the theme; btop rewrites btop.conf itself, so that isn't stowed
+  - fastfetch
+  - gh # only config.yml; hosts.yml beside it holds the login token
   - git
   - nvim
   - starship

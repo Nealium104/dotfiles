@@ -2,7 +2,7 @@ require("config.lazy")
 require("config.filetypes")
 
 -- Colorscheme
-vim.cmd.colorscheme("catppuccin-frappe")
+vim.cmd.colorscheme("catppuccin-macchiato")
 
 -- filetype assertions
 vim.filetype.add({
@@ -99,7 +99,7 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	desc = "Highlight when yanking (copying) text",
 	group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
 	callback = function()
-		vim.highlight.on_yank()
+		vim.hl.on_yank()
 	end,
 })
 

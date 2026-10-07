@@ -5,7 +5,7 @@
 	helper = 
 	helper = !gh auth git-credential
 [user]
-	email = neal.grindstaff@gmail.com
+	email = neal.powers@outlook.com
 	name = Neal Powers
 [init]
 	defaultBranch = main
@@ -15,7 +15,33 @@
 	diffFilter = delta --color-only
 [delta]
 	navigate = true
+	syntax-theme = Catppuccin Macchiato
 [alias]
 	st = status -sb
 	lg = log --oneline --graph --decorate
 	amend = commit --amend --no-edit
+[diff]
+	tool = difftastic
+	algorithm = histogram
+[difftool]
+	prompt = false
+[difftool "difftastic"]
+	cmd = difft "$LOCAL" "$REMOTE"
+[pager]
+	difftool = true
+[pull]
+	rebase = true
+[rebase]
+	autoStash = true
+[push]
+	autoSetupRemote = true
+[fetch]
+	prune = true
+[merge]
+	conflictStyle = zdiff3
+[rerere]
+	enabled = true
+[branch]
+	sort = -committerdate
+[commit]
+	verbose = true

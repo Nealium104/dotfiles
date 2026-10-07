@@ -1,2 +1,4 @@
 *.log
 target/
+# gh's login token, should stow ever link the whole directory
+gh/.config/gh/hosts.yml

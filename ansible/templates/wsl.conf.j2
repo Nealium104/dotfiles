@@ -1,0 +1,19 @@
+# written by dotfiles/ansible/setup.yml; edit the template there.
+# takes effect after `wsl --shutdown` from windows
+
+[boot]
+# docker's service and the binfmt.d registration need it
+systemd=true
+
+[user]
+default={{ ansible_facts.user_id }}
+
+[interop]
+# setup.yml runs powershell and choco from here
+enabled=true
+appendWindowsPath=true
+
+[automount]
+enabled=true
+# metadata lets chmod and ownership stick on /mnt/c
+options="metadata,uid={{ ansible_facts.user_uid }},gid={{ ansible_facts.user_gid }},umask=022,fmask=0022"

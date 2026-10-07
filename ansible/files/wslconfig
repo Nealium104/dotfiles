@@ -1,0 +1,11 @@
+# written by dotfiles/ansible/setup.yml; edit the copy there.
+# applies to every WSL distro; takes effect after `wsl --shutdown`
+
+[wsl2]
+# share windows' network interfaces: localhost works both ways and VPNs carry over
+networkingMode=mirrored
+dnsTunneling=true
+autoProxy=true
+
+[experimental]
+ignoredPorts=67

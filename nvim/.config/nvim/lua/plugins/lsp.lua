@@ -13,7 +13,7 @@ return {
     -- Preserve every language previously supplied by CoC extensions.
     local servers = {
       "ansiblels", "bashls", "cssls", "dockerls", "gopls", "html",
-      "intelephense", "jsonls", "nginx_language_server", "pyright",
+      "intelephense", "jsonls", "lua_ls", "nginx_language_server", "pyright",
       "ts_ls",
     }
     -- rustup supplies an analyzer matched to the selected Rust toolchain.
@@ -26,6 +26,15 @@ return {
     else
       table.insert(servers, "rust_analyzer")
     end
+    -- LuaJIT plus nvim's own runtime, so `vim` and its API resolve in this config.
+    vim.lsp.config("lua_ls", {
+      settings = {
+        Lua = {
+          runtime = { version = "LuaJIT" },
+          workspace = { checkThirdParty = false, library = { vim.env.VIMRUNTIME } },
+        },
+      },
+    })
     vim.lsp.config("pyright", {
       settings = { python = { analysis = { typeCheckingMode = "standard" } } },
     })

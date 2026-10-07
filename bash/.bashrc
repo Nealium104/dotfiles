@@ -1,13 +1,11 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
-# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
-# for examples
-
 # add a directory to PATH only if it isn't there already, so nested shells
 # (tmux panes, subshells) don't keep growing it
 path_prepend() { case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac; }
 path_append() { case ":$PATH:" in *":$1:"*) ;; *) PATH="$PATH:$1" ;; esac; }
 
 path_prepend "$HOME/.local/bin"
+path_prepend "$HOME/.cargo/bin" # before the aliases below look for eza
+path_prepend "$HOME/.local/share/fnm/aliases/default/bin" # the default node, for scripts too
 path_append /usr/local/go/bin
 path_append "$HOME/go/bin"
 export PATH
@@ -24,14 +22,12 @@ case $- in
       *) return;;
 esac
 
-# don't put duplicate lines or lines starting with space in the history.
-# See bash(1) for more options
+# don't put duplicate lines or lines starting with space in the history
 HISTCONTROL=ignoreboth
 
 # append to the history file, don't overwrite it
 shopt -s histappend
 
-# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
 HISTSIZE=50000
 HISTFILESIZE=100000
 
@@ -46,39 +42,22 @@ esac
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
-# If set, the pattern "**" used in a pathname expansion context will
-# match all files and zero or more directories and subdirectories.
-#shopt -s globstar
-
 # make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# enable color support of ls and also add handy aliases
+# colours for ls and grep
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    #alias dir='dir --color=auto'
-    #alias vdir='vdir --color=auto'
-
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
 
-# colored GCC warnings and errors
-#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
-
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
+# programmable completion, unless /etc/bash.bashrc already loaded it
 if ! shopt -oq posix; then
   if [ -f /usr/share/bash-completion/bash_completion ]; then
     . /usr/share/bash-completion/bash_completion
@@ -87,26 +66,9 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# sourcing nvm.sh costs ~400ms per shell, so put the default node on PATH
-# directly and only load nvm itself the first time it's called
-export NVM_DIR="$HOME/.nvm"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  _nvm_default=$(cat "$NVM_DIR/alias/default" 2>/dev/null)
-  case "$_nvm_default" in
-    [0-9]*|v[0-9]*) _nvm_default="v${_nvm_default#v}" ;;
-    *) _nvm_default=v ;; # node, stable, lts/*, or unset: newest installed
-  esac
-  _nvm_node=$(printf '%s\n' "$NVM_DIR"/versions/node/"$_nvm_default"* | sort -V | tail -n1)
-  [ -d "$_nvm_node/bin" ] && path_prepend "$_nvm_node/bin"
-  unset _nvm_default _nvm_node
-
-  nvm() {
-    unset -f nvm
-    . "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
-    nvm "$@"
-  }
-fi
+# fnm switches node version on cd into a project with an .nvmrc or
+# .node-version; the default node is already on PATH from the top of this file
+command -v fnm >/dev/null && eval "$(fnm env --use-on-cd --shell bash)"
 
 # fzf: ctrl-r history, ctrl-t files, alt-c directories. fd keeps .gitignore'd
 # files out of the list and bat previews the highlighted file
@@ -116,6 +78,12 @@ if command -v fzf >/dev/null; then
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
     export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
   fi
+  # catppuccin macchiato, without a background so the terminal's shows through
+  export FZF_DEFAULT_OPTS="\
+--color=bg+:#363a4f,spinner:#f4dbd6,hl:#ed8796 \
+--color=fg:#cad3f5,header:#ed8796,info:#c6a0f6,pointer:#f4dbd6 \
+--color=marker:#b7bdf8,fg+:#cad3f5,prompt:#c6a0f6,hl+:#ed8796 \
+--color=selected-bg:#494d64,border:#6e738d,label:#cad3f5"
   if command -v bat >/dev/null; then
     export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {}'"
   fi
@@ -136,12 +104,15 @@ export WEZTERM_CONFIG_FILE=~/.config/wezterm/wezterm.lua
 
 # once per terminal, not in every tmux pane
 [ -z "$TMUX" ] && command -v fastfetch >/dev/null && fastfetch
-command -v wslview >/dev/null && export BROWSER=wslview
+command -v wsl-open >/dev/null && export BROWSER=wsl-open
 
 export ANSIBLE_SSH_ARGS='-o ControlMaster=auto -o ControlPersist=60s -o ServerAliveInterval=5'
 
-# Generated for envman. Do not edit.
+# webi puts the tools it installs on PATH through envman
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
 [ -s "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
 command -v zoxide >/dev/null && eval "$(zoxide init bash)"
+
+# after everything that touches the prompt
+command -v direnv >/dev/null && eval "$(direnv hook bash)"

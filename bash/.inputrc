@@ -1,0 +1,12 @@
+# readline: bash's line editor, and python's, psql's, php -a's...
+$include /etc/inputrc
+
+# tab completion: ignore case, and list the matches on the first tab
+set completion-ignore-case on
+set show-all-if-ambiguous on
+set colored-stats on
+set mark-symlinked-directories on
+
+# up/down search history for commands starting with what's typed so far
+"\e[A": history-search-backward
+"\e[B": history-search-forward
