@@ -1,25 +1,67 @@
-neovim_version: stable
+# `./install.sh --upgrade` sets this: brings everything that isn't pinned to its
+# latest release. neovim, go, nvm and the cargo tools are pinned below; bump
+# their versions instead. `./install.sh --versions` shows where things stand
+upgrade: false
 
-node_major_version: 24.x
+# a release tag; "stable" can't be compared against `nvim --version`
+neovim_version: v0.12.3
 
-dotfiles_dir: "{{ lookup('env', 'HOME') }}/dotfiles"
+nvm_version: v0.40.8
+node_version: 24
+
+go_version: 1.27.1
+
+dotfiles_dir: "{{ playbook_dir | dirname }}"
 
 packages:
   - build-essential
+  - cmake # needed to build uv from source
   - git # install.sh duplication
   - stow
-  - ripgrep
-  - fd-find
   - fzf
   - tmux
   - unzip
   - jq
-  - zoxide
+  - curl
+  - socat
+  - util-linux
+  - python3-venv # mason needs it for python-based tools
+  - php-cli
+  # extensions composer wants for downloading and unpacking packages
+  - php-curl
+  - php-mbstring
+  - php-xml
+  - php-zip
+
+# name is the crate, bin is the executable it installs
+cargo_packages:
+  # not in apt, and the prebuilt binaries need a newer glibc than Ubuntu 22.04 ships
+  - { name: tree-sitter-cli, bin: tree-sitter, version: 0.27.0 }
+  - { name: eza, bin: eza, version: 0.23.5 }
+  - { name: ripgrep, bin: rg, version: 15.2.0 }
+  - { name: fd-find, bin: fd, version: 10.5.0 }
+  - { name: zoxide, bin: zoxide, version: 0.10.0 }
+  - { name: starship, bin: starship, version: 1.26.0 }
+  - { name: uv, bin: uv, version: 0.12.23 }
+  - { name: bat, bin: bat, version: 0.26.1 }
+  - { name: git-delta, bin: delta, version: 0.20.1 }
+
+# fonts the terminal and prompt configs ask for. on WSL they're installed on
+# the windows side with chocolatey (choco is the package id); on native linux
+# release is the zip name in the nerd-fonts github release
+nerd_fonts:
+  - { choco: nerd-fonts-Hasklig, release: Hasklig }
+  - { choco: nerd-fonts-CascadiaCode, release: CascadiaCode } # CaskaydiaCove
+  - { choco: nerd-fonts-RobotoMono, release: RobotoMono }
+  - { choco: nerd-fonts-JetBrainsMono, release: JetBrainsMono }
+  - { choco: nerd-fonts-ProggyClean, release: ProggyClean }
+  - { choco: nerd-fonts-Gohu, release: Gohu }
 
 stow_packages:
   - bash
+  - git
   - nvim
-  - posh
+  - starship
   - wezterm
   - alacritty
   - tmux

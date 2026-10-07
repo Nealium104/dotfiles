@@ -1,0 +1,17 @@
+[credential "https://github.com"]
+	helper = 
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !gh auth git-credential
+[user]
+	email = neal.grindstaff@gmail.com
+	name = Neal Powers
+[init]
+	defaultBranch = main
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true

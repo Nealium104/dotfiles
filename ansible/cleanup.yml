@@ -1,0 +1,108 @@
+- name: Remove tools that setup.yml has replaced
+  hosts: localhost
+  connection: local
+  # opt-in: `./install.sh --cleanup` (add --check to see what it would do).
+  # Everything here is only removed once its replacement exists, so it's safe
+  # to run before or after setup.yml. When a tool gets swapped out in
+  # setup.yml, add the old one below.
+
+  vars:
+    home: "{{ ansible_env.HOME }}"
+
+    old_files:
+      - { path: "{{ home }}/.local/bin/oh-my-posh", replaced_by: "{{ home }}/.cargo/bin/starship" }
+      - { path: "{{ home }}/.cache/oh-my-posh", replaced_by: "{{ home }}/.cargo/bin/starship" }
+      - { path: "{{ home }}/.local/bin/fd", replaced_by: "{{ home }}/.cargo/bin/fd" }
+      - { path: "{{ home }}/.local/bin/zoxide", replaced_by: "{{ home }}/.cargo/bin/zoxide" }
+      - { path: "{{ home }}/.local/bin/uv", replaced_by: "{{ home }}/.cargo/bin/uv" }
+      - { path: "{{ home }}/.local/bin/uvx", replaced_by: "{{ home }}/.cargo/bin/uv" }
+      - { path: "{{ home }}/.local/bin/gh", replaced_by: /usr/bin/gh }
+      - { path: "{{ home }}/.local/opt/gh-v2.50.0", replaced_by: /usr/bin/gh }
+      - { path: "{{ home }}/.local/opt/gh-v2.51.0", replaced_by: /usr/bin/gh }
+      # ~/go (installed go binaries) is left alone
+      - { path: "{{ home }}/.local/opt/go", replaced_by: /usr/local/go/bin/go }
+      - { path: "{{ home }}/.local/opt/go-v1.22.5", replaced_by: /usr/local/go/bin/go }
+
+    old_root_files:
+      - { path: /etc/apt/sources.list.d/nodesource.list, replaced_by: "{{ home }}/.nvm/versions/node" }
+      - { path: /etc/apt/keyrings/nodesource.asc, replaced_by: "{{ home }}/.nvm/versions/node" }
+      # hand-added copies of repos that setup.yml now writes itself
+      - { path: /etc/apt/sources.list.d/zhangsongcui3371-ubuntu-fastfetch-jammy.list, replaced_by: /etc/apt/sources.list.d/ppa_zhangsongcui3371_fastfetch_jammy.list }
+      - { path: /etc/apt/sources.list.d/docker.sources, replaced_by: /etc/apt/sources.list.d/docker.list }
+
+    old_apt_packages:
+      - { name: nodejs, replaced_by: "{{ home }}/.nvm/versions/node" }
+      - { name: ripgrep, replaced_by: "{{ home }}/.cargo/bin/rg" }
+      - { name: fd-find, replaced_by: "{{ home }}/.cargo/bin/fd" }
+      - { name: zoxide, replaced_by: "{{ home }}/.cargo/bin/zoxide" }
+
+  tasks:
+    - name: Remove replaced files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      when: item.replaced_by is exists
+
+    - name: Remove replaced system files
+      become: true
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_root_files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      when: item.replaced_by is exists
+
+    - name: Remove replaced apt packages
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item.name }}"
+        state: absent
+      loop: "{{ old_apt_packages }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.replaced_by is exists
+
+    - name: Drop the old go from envman's PATH
+      ansible.builtin.lineinfile:
+        path: "{{ home }}/.config/envman/PATH.env"
+        line: 'export PATH="$HOME/.local/opt/go/bin:$PATH"'
+        state: absent
+      when:
+        - "'/usr/local/go/bin/go' is exists"
+        - (home ~ '/.config/envman/PATH.env') is exists
+
+    - name: Find broken symlinks in ~/.local/bin
+      ansible.builtin.command:
+        cmd: "find {{ home }}/.local/bin -maxdepth 1 -xtype l"
+      register: broken_links
+      changed_when: false
+      check_mode: false
+
+    - name: Remove broken symlinks in ~/.local/bin
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ broken_links.stdout_lines }}"
+
+    # .bashrc no longer loads homebrew; only remove it if nothing is installed
+    - name: Look for installed homebrew packages
+      ansible.builtin.find:
+        paths:
+          - /home/linuxbrew/.linuxbrew/Cellar
+          - /home/linuxbrew/.linuxbrew/Caskroom
+        file_type: any
+      register: brew_packages
+
+    - name: Remove unused homebrew
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /home/linuxbrew
+        - "{{ home }}/.cache/Homebrew"
+      when: brew_packages.matched == 0

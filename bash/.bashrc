@@ -2,14 +2,21 @@
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
-export VAGRANT_WSL_ENABLE_WINDOWS_ACCESS="1"
-export PATH="$PATH:/mnt/c/HashiCorp/Vagrant/bin:/mnt/c/Program\ Files/Oracle/VirtualBox"
+# add a directory to PATH only if it isn't there already, so nested shells
+# (tmux panes, subshells) don't keep growing it
+path_prepend() { case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac; }
+path_append() { case ":$PATH:" in *":$1:"*) ;; *) PATH="$PATH:$1" ;; esac; }
 
-export PATH="$HOME/.local/bin:$PATH"
-export PATH=$PATH:/usr/local/go/bin
-export PATH="$HOME/src/git-filter-repo:$PATH"
+path_prepend "$HOME/.local/bin"
+path_append /usr/local/go/bin
+path_append "$HOME/go/bin"
+export PATH
 
-export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/bin/vaultpw.sh"
+# ansible hard-fails if this points at a missing file, so only set it on
+# machines that actually have the script
+if [ -f "$HOME/bin/vaultpw.sh" ]; then
+  export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/bin/vaultpw.sh"
+fi
 
 # If not running interactively, don't do anything
 case $- in
@@ -25,8 +32,8 @@ HISTCONTROL=ignoreboth
 shopt -s histappend
 
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=50000
+HISTFILESIZE=100000
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -38,48 +45,6 @@ shopt -s checkwinsize
 
 # make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
-
-# set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
-fi
-
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-    xterm-color|*-256color) color_prompt=yes;;
-esac
-
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
-#force_color_prompt=yes
-
-if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
-    else
-	color_prompt=
-    fi
-fi
-
-if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-else
-    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
-fi
-unset color_prompt force_color_prompt
-
-# If this is an xterm set the title to user@host:dir
-case "$TERM" in
-xterm*|rxvt*)
-    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-    ;;
-*)
-    ;;
-esac
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -94,12 +59,6 @@ fi
 
 # colored GCC warnings and errors
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
-
-alias ls='eza'
-
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 # Alias definitions.
 # You may want to put all your additions into a separate file like
@@ -121,12 +80,31 @@ if ! shopt -oq posix; then
   fi
 fi
 
+# sourcing nvm.sh costs ~400ms per shell, so put the default node on PATH
+# directly and only load nvm itself the first time it's called
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  _nvm_default=$(cat "$NVM_DIR/alias/default" 2>/dev/null)
+  case "$_nvm_default" in
+    [0-9]*|v[0-9]*) _nvm_default="v${_nvm_default#v}" ;;
+    *) _nvm_default=v ;; # node, stable, lts/*, or unset: newest installed
+  esac
+  _nvm_node=$(printf '%s\n' "$NVM_DIR"/versions/node/"$_nvm_default"* | sort -V | tail -n1)
+  [ -d "$_nvm_node/bin" ] && path_prepend "$_nvm_node/bin"
+  unset _nvm_default _nvm_node
 
+  nvm() {
+    unset -f nvm
+    . "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+    nvm "$@"
+  }
+fi
 
-eval "$(oh-my-posh init bash --config ~/.config/posh/themes/froczh.omp.json)"
+# ctrl-r / ctrl-t / alt-c
+[ -s /usr/share/doc/fzf/examples/key-bindings.bash ] && . /usr/share/doc/fzf/examples/key-bindings.bash
+
+command -v starship >/dev/null && eval "$(starship init bash)"
 
 # Make neovim the default editor
 export EDITOR=nvim
@@ -134,16 +112,14 @@ export EDITOR=nvim
 # Config for WezTerm
 export WEZTERM_CONFIG_FILE=~/.config/wezterm/wezterm.lua
 
-fastfetch
-export BROWSER=wslview
+# once per terminal, not in every tmux pane
+[ -z "$TMUX" ] && command -v fastfetch >/dev/null && fastfetch
+command -v wslview >/dev/null && export BROWSER=wslview
 
 export ANSIBLE_SSH_ARGS='-o ControlMaster=auto -o ControlPersist=60s -o ServerAliveInterval=5'
 
 # Generated for envman. Do not edit.
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
-export PATH=$PATH:$HOME/go/bin
-. "$HOME/.cargo/env"
+[ -s "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
-
-eval "$(zoxide init bash)"
+command -v zoxide >/dev/null && eval "$(zoxide init bash)"
