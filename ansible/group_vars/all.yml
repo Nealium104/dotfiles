@@ -1,5 +1,5 @@
 # `./install.sh --upgrade` sets this: brings everything that isn't pinned to its
-# latest release. neovim, go, nvm and the cargo tools are pinned below; bump
+# latest release. neovim, go, nvm, fzf, yq and the cargo tools are pinned below; bump
 # their versions instead. `./install.sh --versions` shows where things stand
 upgrade: false
 
@@ -11,14 +11,17 @@ node_version: 24
 
 go_version: 1.27.1
 
+fzf_version: 0.74.4
+
+yq_version: v4.54.1
+
 dotfiles_dir: "{{ playbook_dir | dirname }}"
 
 packages:
   - build-essential
-  - cmake # needed to build uv from source
+  - cmake # needed to build uv and xh from source
   - git # install.sh duplication
   - stow
-  - fzf
   - tmux
   - unzip
   - jq
@@ -26,6 +29,7 @@ packages:
   - socat
   - util-linux
   - python3-venv # mason needs it for python-based tools
+  - shellcheck
   - php-cli
   # extensions composer wants for downloading and unpacking packages
   - php-curl
@@ -45,6 +49,25 @@ cargo_packages:
   - { name: uv, bin: uv, version: 0.12.23 }
   - { name: bat, bin: bat, version: 0.26.1 }
   - { name: git-delta, bin: delta, version: 0.20.1 }
+  - { name: bottom, bin: btm, version: 0.14.9 }
+  - { name: du-dust, bin: dust, version: 1.2.6 }
+  - { name: hyperfine, bin: hyperfine, version: 1.21.0 }
+  - { name: xh, bin: xh, version: 0.26.2 }
+
+# written to ~/.local/share/bash-completion/completions/<name>, where
+# bash-completion loads them on first use (no shell startup cost)
+bash_completions:
+  - { name: uv, cmd: uv generate-shell-completion bash }
+  - { name: uvx, cmd: uvx --generate-shell-completion bash }
+  - { name: starship, cmd: starship completions bash }
+  - { name: rustup, cmd: rustup completions bash }
+  - { name: cargo, cmd: rustup completions bash cargo }
+  - { name: rg, cmd: rg --generate complete-bash }
+  - { name: fd, cmd: fd --gen-completions bash }
+  - { name: bat, cmd: bat --completion bash }
+  - { name: delta, cmd: delta --generate-completion bash }
+  - { name: xh, cmd: xh --generate complete-bash }
+  - { name: yq, cmd: yq shell-completion bash }
 
 # fonts the terminal and prompt configs ask for. on WSL they're installed on
 # the windows side with chocolatey (choco is the package id); on native linux
@@ -63,5 +86,4 @@ stow_packages:
   - nvim
   - starship
   - wezterm
-  - alacritty
   - tmux

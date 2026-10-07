@@ -18,7 +18,11 @@ for arg in "$@"; do
       upgrade=true
       args+=(-e upgrade=true)
       ;;
-    --cleanup) playbook=cleanup.yml ;;
+    --cleanup | --clean) playbook=cleanup.yml ;;
+    -h | --help)
+      echo "usage: install.sh [--versions | --cleanup] [--upgrade] [ansible-playbook options, e.g. --check]"
+      exit 0
+      ;;
     *) args+=("$arg") ;;
   esac
 done

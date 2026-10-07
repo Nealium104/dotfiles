@@ -35,6 +35,13 @@ shopt -s histappend
 HISTSIZE=50000
 HISTFILESIZE=100000
 
+# share history between open shells (tmux panes): write each command out as
+# it's run and pick up what other shells have written
+case "${PROMPT_COMMAND:-}" in
+  *'history -a'*) ;;
+  *) PROMPT_COMMAND="history -a; history -n${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
+esac
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
@@ -101,8 +108,23 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   }
 fi
 
-# ctrl-r / ctrl-t / alt-c
-[ -s /usr/share/doc/fzf/examples/key-bindings.bash ] && . /usr/share/doc/fzf/examples/key-bindings.bash
+# fzf: ctrl-r history, ctrl-t files, alt-c directories. fd keeps .gitignore'd
+# files out of the list and bat previews the highlighted file
+if command -v fzf >/dev/null; then
+  if command -v fd >/dev/null; then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+  fi
+  if command -v bat >/dev/null; then
+    export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {}'"
+  fi
+  if fzf --bash >/dev/null 2>&1; then
+    eval "$(fzf --bash)"
+  elif [ -s /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+    . /usr/share/doc/fzf/examples/key-bindings.bash # apt's older fzf
+  fi
+fi
 
 command -v starship >/dev/null && eval "$(starship init bash)"
 

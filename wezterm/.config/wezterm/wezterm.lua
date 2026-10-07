@@ -74,14 +74,6 @@ config.keys = {
         mods = 'ALT|CTRL',
         action = act.EmitEvent "low-opacity"
     },
-    {
-        key = 't',
-        mods = 'CTRL',
-        action = act.SpawnCommandInNewTab {
-            domain = { DomainName = 'local' },
-            args = { 'powershell.exe' },
-        },
-    },
 }
 
 return config

@@ -27,7 +27,8 @@
       - { path: /etc/apt/sources.list.d/nodesource.list, replaced_by: "{{ home }}/.nvm/versions/node" }
       - { path: /etc/apt/keyrings/nodesource.asc, replaced_by: "{{ home }}/.nvm/versions/node" }
       # hand-added copies of repos that setup.yml now writes itself
-      - { path: /etc/apt/sources.list.d/zhangsongcui3371-ubuntu-fastfetch-jammy.list, replaced_by: /etc/apt/sources.list.d/ppa_zhangsongcui3371_fastfetch_jammy.list }
+      - path: /etc/apt/sources.list.d/zhangsongcui3371-ubuntu-fastfetch-jammy.list
+        replaced_by: /etc/apt/sources.list.d/ppa_zhangsongcui3371_fastfetch_jammy.list
       - { path: /etc/apt/sources.list.d/docker.sources, replaced_by: /etc/apt/sources.list.d/docker.list }
 
     old_apt_packages:
@@ -35,6 +36,7 @@
       - { name: ripgrep, replaced_by: "{{ home }}/.cargo/bin/rg" }
       - { name: fd-find, replaced_by: "{{ home }}/.cargo/bin/fd" }
       - { name: zoxide, replaced_by: "{{ home }}/.cargo/bin/zoxide" }
+      - { name: fzf, replaced_by: "{{ home }}/.local/bin/fzf" }
 
   tasks:
     - name: Remove replaced files

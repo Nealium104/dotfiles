@@ -32,6 +32,8 @@ printf '%-26s %-32s %-10s\n' TOOL INSTALLED WANTED
 row neovim "$(ver nvim --version)" "$(pin neovim_version)"
 row go "$(ver go version)" "$(pin go_version)"
 row nvm "$(ver bash -c '. "$HOME/.nvm/nvm.sh" && nvm --version')" "$(pin nvm_version)"
+row fzf "$(ver fzf --version)" "$(pin fzf_version)"
+row yq "$(ver yq --version)" "$(pin yq_version)"
 row node "$(ver node --version)" "$(pin node_version).x"
 
 while read -r name bin version; do
@@ -40,6 +42,7 @@ done < <(sed -nE 's/^ *- *\{ *name: *([^, ]+), *bin: *([^, ]+), *version: *([^ }
 
 row rustc "$(ver rustc --version)" latest
 row rust-analyzer "$(ver rust-analyzer --version)" latest
+row ansible-lint "$(ver ansible-lint --version)" latest
 row ansible-core "$(ver ansible --version)" latest
 row composer "$(ver composer --version)" latest
 row tpm "$(git -C "$HOME/.tmux/plugins/tpm" log -1 --format='%h %cs' 2>/dev/null)" latest

@@ -9,7 +9,7 @@
       ansible.builtin.apt:
         name: "{{ packages }}"
         state: "{{ 'latest' if upgrade | bool else 'present' }}"
-        update_cache: yes
+        update_cache: true
 
     - name: Create a temporary directory for packages
       ansible.builtin.tempfile:
@@ -20,355 +20,500 @@
 
     - name: Main tasks
       block:
-      - name: Check for existing neovim
-        ansible.builtin.shell: "/opt/nvim/bin/nvim --version | head -n 1"
-        register: check_nvim
-        ignore_errors: true # don't fail the playbook if neovim doesn't exist yet
-        changed_when: false
+        - name: Check for existing neovim
+          ansible.builtin.command: /opt/nvim/bin/nvim --version
+          register: check_nvim
+          failed_when: false # neovim may not exist yet
+          changed_when: false
 
-      - name: Install or update neovim
-        block:
-          - name: Download neovim release
-            become: true
-            ansible.builtin.get_url:
-              url: "https://github.com/neovim/neovim/releases/download/{{ neovim_version }}/nvim-linux-x86_64.tar.gz"
-              dest: "{{ tmp.path }}/nvim.tar.gz"
-            check_mode: false
+        - name: Install or update neovim
+          when: check_nvim.rc != 0 or neovim_version not in check_nvim.stdout
+          block:
+            - name: Download neovim release
+              become: true
+              ansible.builtin.get_url:
+                url: "https://github.com/neovim/neovim/releases/download/{{ neovim_version }}/nvim-linux-x86_64.tar.gz"
+                dest: "{{ tmp.path }}/nvim.tar.gz"
+                mode: '0644'
+              check_mode: false
 
-          - name: Unarchive neovim
-            ansible.builtin.unarchive:
-              src: "{{ tmp.path }}/nvim.tar.gz"
-              dest: "{{ tmp.path }}"
-              remote_src: yes # file exists on this machine, through localhost
-            check_mode: false
+            - name: Unarchive neovim
+              ansible.builtin.unarchive:
+                src: "{{ tmp.path }}/nvim.tar.gz"
+                dest: "{{ tmp.path }}"
+                remote_src: true # file exists on this machine, through localhost
+              check_mode: false
 
-          - name: Install neovim to /opt
-            become: true
-            ansible.builtin.copy:
-              src: "{{ tmp.path }}/nvim-linux-x86_64/"
-              dest: "/opt/nvim"
-              mode: preserve
-              remote_src: yes
+            - name: Install neovim to /opt
+              become: true
+              ansible.builtin.copy:
+                src: "{{ tmp.path }}/nvim-linux-x86_64/"
+                dest: "/opt/nvim"
+                mode: preserve
+                remote_src: true
 
-          - name: Symlink nvim binary to path
-            become: true
-            ansible.builtin.file:
-              src: "/opt/nvim/bin/nvim"
-              dest: "/usr/local/bin/nvim"
-              state: link
-              force: yes
+            - name: Symlink nvim binary to path
+              become: true
+              ansible.builtin.file:
+                src: "/opt/nvim/bin/nvim"
+                dest: "/usr/local/bin/nvim"
+                state: link
+                force: true
 
-        when: check_nvim.failed or neovim_version not in check_nvim.stdout
+        - name: Install rustup
+          when: not (ansible_env.HOME ~ '/.cargo/bin/cargo') is exists
+          block:
+            - name: Download rustup installer
+              ansible.builtin.get_url:
+                url: https://sh.rustup.rs
+                dest: "{{ tmp.path }}/rustup-init.sh"
+                mode: '0755'
 
-      - name: Install rustup
-        ansible.builtin.shell:
-          cmd: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path"
-          creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
+            - name: Run rustup installer
+              ansible.builtin.command:
+                cmd: "sh {{ tmp.path }}/rustup-init.sh -y --no-modify-path"
+                creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
 
-      - name: Update rust toolchain
-        ansible.builtin.command:
-          cmd: "{{ ansible_env.HOME }}/.cargo/bin/rustup update"
-        register: rustup_update
-        changed_when: "'updated' in rustup_update.stdout"
-        when: upgrade | bool
+        - name: Update rust toolchain
+          ansible.builtin.command:
+            cmd: "{{ ansible_env.HOME }}/.cargo/bin/rustup update"
+          register: rustup_update
+          changed_when: "'updated' in rustup_update.stdout"
+          when: upgrade | bool
 
-      - name: Install rustup components
-        ansible.builtin.command:
-          cmd: "{{ ansible_env.HOME }}/.cargo/bin/rustup component add rust-analyzer rust-src"
-        register: rustup_components
-        changed_when: "'installing' in rustup_components.stderr"
+        - name: Install rustup components
+          ansible.builtin.command:
+            cmd: "{{ ansible_env.HOME }}/.cargo/bin/rustup component add rust-analyzer rust-src"
+          register: rustup_components
+          changed_when: "'installing' in rustup_components.stderr"
 
-      # anything written in rust is built with cargo; names and versions in
-      # group_vars. cargo skips a crate that's already at the pinned version
-      - name: Install rust tools with cargo
-        ansible.builtin.command:
-          cmd: "{{ ansible_env.HOME }}/.cargo/bin/cargo install --locked {{ item.name }}@{{ item.version }}"
-        register: cargo_install
-        changed_when: "'Installed package' in cargo_install.stderr"
-        loop: "{{ cargo_packages }}"
-        loop_control:
-          label: "{{ item.name }}"
+        # anything written in rust is built with cargo; names and versions in
+        # group_vars. cargo skips a crate that's already at the pinned version
+        - name: Install rust tools with cargo
+          ansible.builtin.command:
+            cmd: "{{ ansible_env.HOME }}/.cargo/bin/cargo install --locked {{ item.name }}@{{ item.version }}"
+          register: cargo_install
+          changed_when: "'Installed package' in cargo_install.stderr"
+          loop: "{{ cargo_packages }}"
+          loop_control:
+            label: "{{ item.name }}"
 
-      # node comes from nvm (which .bashrc loads) rather than a system package
-      - name: Install nvm
-        ansible.builtin.shell:
-          cmd: "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh | PROFILE=/dev/null bash"
-          creates: "{{ omit if upgrade | bool else ansible_env.HOME ~ '/.nvm/nvm.sh' }}"
+        # node comes from nvm (which .bashrc loads) rather than a system package
+        - name: Check for existing nvm
+          ansible.builtin.command:
+            cmd: "grep -o '\"version\": \"[^\"]*\"' {{ ansible_env.HOME }}/.nvm/package.json"
+          register: check_nvm
+          failed_when: false # nvm may not exist yet
+          changed_when: false
 
-      # picks up the newest release of node_version on every run
-      - name: Install Node.js
-        ansible.builtin.shell:
-          cmd: ". {{ ansible_env.HOME }}/.nvm/nvm.sh && nvm install {{ node_version }}"
-          executable: /bin/bash
-        register: nvm_node
-        changed_when: "'already installed' not in nvm_node.stdout + nvm_node.stderr"
+        - name: Install or update nvm
+          when: check_nvm.rc != 0 or ('"' ~ nvm_version[1:] ~ '"') not in check_nvm.stdout
+          block:
+            - name: Download nvm installer
+              ansible.builtin.get_url:
+                url: "https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh"
+                dest: "{{ tmp.path }}/nvm-install.sh"
+                mode: '0755'
 
-      - name: Check for existing go
-        ansible.builtin.command: /usr/local/go/bin/go version
-        register: check_go
-        failed_when: false # go may not exist yet
-        changed_when: false
+            - name: Run nvm installer
+              ansible.builtin.command:
+                cmd: "bash {{ tmp.path }}/nvm-install.sh"
+              environment:
+                PROFILE: /dev/null # .bashrc already loads nvm
+              changed_when: true
 
-      - name: Install or update go
-        block:
-          - name: Download go release
-            ansible.builtin.get_url:
-              url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
-              dest: "{{ tmp.path }}/go.tar.gz"
-            check_mode: false
+        # picks up the newest release of node_version on every run
+        - name: Install Node.js
+          ansible.builtin.shell:
+            cmd: ". {{ ansible_env.HOME }}/.nvm/nvm.sh && nvm install {{ node_version }}"
+            executable: /bin/bash
+          register: nvm_node
+          changed_when: "'already installed' not in nvm_node.stdout + nvm_node.stderr"
 
-          - name: Remove previous go install
-            become: true
-            ansible.builtin.file:
-              path: /usr/local/go
-              state: absent
+        - name: Check for existing go
+          ansible.builtin.command: /usr/local/go/bin/go version
+          register: check_go
+          failed_when: false # go may not exist yet
+          changed_when: false
 
-          - name: Unarchive go to /usr/local
-            become: true
-            ansible.builtin.unarchive:
-              src: "{{ tmp.path }}/go.tar.gz"
-              dest: /usr/local
-              remote_src: yes
+        - name: Install or update go
+          when: check_go.rc != 0 or ('go' ~ go_version ~ ' ') not in check_go.stdout
+          block:
+            - name: Download go release
+              ansible.builtin.get_url:
+                url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
+                dest: "{{ tmp.path }}/go.tar.gz"
+                mode: '0644'
+              check_mode: false
 
-        when: check_go.rc != 0 or ('go' ~ go_version ~ ' ') not in check_go.stdout
+            - name: Remove previous go install
+              become: true
+              ansible.builtin.file:
+                path: /usr/local/go
+                state: absent
 
-      - name: Install composer
-        become: true
-        ansible.builtin.get_url:
-          url: https://getcomposer.org/download/latest-stable/composer.phar
-          dest: /usr/local/bin/composer
-          mode: '0755'
-          force: "{{ upgrade | bool }}"
+            - name: Unarchive go to /usr/local
+              become: true
+              ansible.builtin.unarchive:
+                src: "{{ tmp.path }}/go.tar.gz"
+                dest: /usr/local
+                remote_src: true
 
-      - name: Install GitHub CLI
-        become: true
-        block:
-          - name: Create keyrings directory
-            ansible.builtin.file:
-              path: /etc/apt/keyrings
-              state: directory
-              mode: '0755'
+        - name: Ensure ~/.local/bin exists
+          ansible.builtin.file:
+            path: "{{ ansible_env.HOME }}/.local/bin"
+            state: directory
+            mode: '0755'
 
-          - name: Add GitHub CLI GPG key
-            ansible.builtin.get_url:
-              url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
-              dest: /etc/apt/keyrings/githubcli-archive-keyring.gpg
-              mode: '0644'
-              force: true
+        # apt's fzf is years behind and lacks `fzf --bash`
+        - name: Check for existing fzf
+          ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/fzf --version"
+          register: check_fzf
+          failed_when: false # fzf may not exist yet
+          changed_when: false
 
-          - name: Add GitHub CLI repository
-            ansible.builtin.apt_repository:
-              repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
-              state: present
-              filename: github-cli
+        - name: Install or update fzf
+          ansible.builtin.unarchive:
+            src: "https://github.com/junegunn/fzf/releases/download/v{{ fzf_version }}/fzf-{{ fzf_version }}-linux_amd64.tar.gz"
+            dest: "{{ ansible_env.HOME }}/.local/bin"
+            remote_src: true
+          when: check_fzf.rc != 0 or (fzf_version ~ ' ') not in check_fzf.stdout
 
-          - name: Install GitHub CLI package
-            ansible.builtin.apt:
-              name: gh
-              state: "{{ 'latest' if upgrade | bool else 'present' }}"
-              update_cache: yes
+        - name: Check for existing yq
+          ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/yq --version"
+          register: check_yq
+          failed_when: false # yq may not exist yet
+          changed_when: false
 
-      - name: Install fastfetch
-        become: true
-        block:
-          - name: Add fastfetch PPA
-            ansible.builtin.apt_repository:
-              repo: ppa:zhangsongcui3371/fastfetch
-              state: present
+        - name: Install or update yq
+          ansible.builtin.get_url:
+            url: "https://github.com/mikefarah/yq/releases/download/{{ yq_version }}/yq_linux_amd64"
+            dest: "{{ ansible_env.HOME }}/.local/bin/yq"
+            mode: '0755'
+            force: true
+          when: check_yq.rc != 0 or not check_yq.stdout.endswith(yq_version)
 
-          - name: Install fastfetch package
-            ansible.builtin.apt:
-              name: fastfetch
-              state: "{{ 'latest' if upgrade | bool else 'present' }}"
-              update_cache: yes
+        - name: Install ansible-lint
+          ansible.builtin.command:
+            cmd: pipx install ansible-lint
+            creates: "{{ ansible_env.HOME }}/.local/bin/ansible-lint"
 
-      - name: Install wslu for wslview
-        become: true
-        ansible.builtin.apt:
-          name: wslu
-          state: "{{ 'latest' if upgrade | bool else 'present' }}"
-        when: "'microsoft' in ansible_kernel | lower"
+        - name: Upgrade ansible-lint
+          ansible.builtin.command:
+            cmd: pipx upgrade ansible-lint
+          register: ansible_lint_upgrade
+          changed_when: "'upgraded' in ansible_lint_upgrade.stdout"
+          when: upgrade | bool
 
-      - name: Install nerd fonts on windows with chocolatey
-        when: "'microsoft' in ansible_kernel | lower"
-        block:
-          # full paths throughout: a fresh chocolatey isn't on WSL's copy of
-          # the windows PATH until WSL restarts. each elevated step raises a
-          # UAC prompt on the windows desktop and waits for it
-          - name: Install chocolatey
-            ansible.builtin.command:
-              argv:
-                - powershell.exe
-                - -NoProfile
-                - -Command
-                - >-
-                  $p = Start-Process powershell -Verb RunAs -Wait -PassThru
-                  -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
-                  '[Net.ServicePointManager]::SecurityProtocol = 3072;
-                  iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))';
-                  exit $p.ExitCode
-              chdir: /mnt/c
-              creates: /mnt/c/ProgramData/chocolatey/bin/choco.exe
+        - name: Ensure bash completion directory exists
+          ansible.builtin.file:
+            path: "{{ ansible_env.HOME }}/.local/share/bash-completion/completions"
+            state: directory
+            mode: '0755'
 
-          - name: List installed chocolatey packages
-            ansible.builtin.command:
-              cmd: /mnt/c/ProgramData/chocolatey/bin/choco.exe list --limit-output
-              chdir: /mnt/c
-            register: choco_installed
-            changed_when: false
-            check_mode: false
+        - name: Generate bash completions
+          ansible.builtin.command: "{{ item.cmd }}"
+          environment:
+            PATH: "{{ ansible_env.HOME }}/.cargo/bin:{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
+          loop: "{{ bash_completions }}"
+          loop_control:
+            label: "{{ item.name }}"
+          register: completions
+          changed_when: false
+          check_mode: false
 
-          - name: Work out which fonts are missing
-            ansible.builtin.set_fact:
-              choco_fonts_missing: >-
-                {{ nerd_fonts | map(attribute='choco') | map('lower')
-                   | reject('in', choco_installed.stdout_lines | map('split', '|') | map('first') | map('lower') | list)
-                   | list }}
+        - name: Install bash completions
+          ansible.builtin.copy:
+            content: "{{ item.stdout }}\n"
+            dest: "{{ ansible_env.HOME }}/.local/share/bash-completion/completions/{{ item.item.name }}"
+            mode: '0644'
+          loop: "{{ completions.results }}"
+          loop_control:
+            label: "{{ item.item.name }}"
 
-          - name: Install or upgrade fonts
-            ansible.builtin.command:
-              argv:
-                - powershell.exe
-                - -NoProfile
-                - -Command
-                - >-
-                  $p = Start-Process C:\ProgramData\chocolatey\bin\choco.exe -Verb RunAs -Wait -PassThru
-                  -ArgumentList '{{ 'upgrade' if upgrade | bool else 'install' }}
-                  {{ (nerd_fonts | map(attribute='choco') if upgrade | bool else choco_fonts_missing) | join(' ') }} -y';
-                  exit $p.ExitCode
-              chdir: /mnt/c
-            register: choco_fonts
-            failed_when: choco_fonts.rc not in [0, 1641, 3010] # the last two mean "reboot needed"
-            when: upgrade | bool or choco_fonts_missing | length > 0
+        - name: Install composer
+          become: true
+          ansible.builtin.get_url:
+            url: https://getcomposer.org/download/latest-stable/composer.phar
+            dest: /usr/local/bin/composer
+            mode: '0755'
+            force: "{{ upgrade | bool }}"
 
-      - name: Install nerd fonts on linux
-        ansible.builtin.shell:
-          cmd: >-
-            curl -fsSL -o {{ tmp.path }}/{{ item.release }}.zip
-            https://github.com/ryanoasis/nerd-fonts/releases/latest/download/{{ item.release }}.zip
-            && unzip -oq {{ tmp.path }}/{{ item.release }}.zip -d {{ tmp.path }}/{{ item.release }}
-            && mkdir -p {{ ansible_env.HOME }}/.local/share/fonts
-            && rm -rf {{ ansible_env.HOME }}/.local/share/fonts/{{ item.release }}
-            && mv {{ tmp.path }}/{{ item.release }} {{ ansible_env.HOME }}/.local/share/fonts/{{ item.release }}
-            && (command -v fc-cache >/dev/null && fc-cache -f || true)
-          creates: "{{ omit if upgrade | bool else ansible_env.HOME ~ '/.local/share/fonts/' ~ item.release }}"
-        loop: "{{ nerd_fonts }}"
-        loop_control:
-          label: "{{ item.release }}"
-        when: "'microsoft' not in ansible_kernel | lower"
+        - name: Install GitHub CLI
+          become: true
+          block:
+            - name: Create keyrings directory
+              ansible.builtin.file:
+                path: /etc/apt/keyrings
+                state: directory
+                mode: '0755'
 
-      - name: Install tmux plugin manager
-        ansible.builtin.git:
-          repo: https://github.com/tmux-plugins/tpm
-          dest: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
-          update: "{{ upgrade | bool }}"
+            - name: Add GitHub CLI GPG key
+              ansible.builtin.get_url:
+                url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+                dest: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+                mode: '0644'
+                force: true
 
-      - name: Install Docker Engine
-        become: true
-        block:
-          - name: Create keyrings directory
-            ansible.builtin.file:
-              path: /etc/apt/keyrings
-              state: directory
-              mode: '0755'
+            - name: Add GitHub CLI repository
+              ansible.builtin.apt_repository:
+                repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
+                state: present
+                filename: github-cli
 
-          - name: Add Docker GPG key
-            ansible.builtin.get_url:
-              url: https://download.docker.com/linux/ubuntu/gpg
-              dest: /etc/apt/keyrings/docker.asc
-              mode: '0644'
-              force: true
+            - name: Install GitHub CLI package
+              ansible.builtin.apt:
+                name: gh
+                state: "{{ 'latest' if upgrade | bool else 'present' }}"
+                update_cache: true
 
-          - name: Add Docker repository
-            ansible.builtin.apt_repository:
-              repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-              state: present
-              filename: docker
+        - name: Install fastfetch
+          become: true
+          block:
+            - name: Add fastfetch PPA
+              ansible.builtin.apt_repository:
+                repo: ppa:zhangsongcui3371/fastfetch
+                state: present
 
-          - name: Install Docker packages
-            ansible.builtin.apt:
-              name:
-                - docker-ce
-                - docker-ce-cli
-                - containerd.io
-                - docker-buildx-plugin
-                - docker-compose-plugin
-              state: present
-              update_cache: yes
+            - name: Install fastfetch package
+              ansible.builtin.apt:
+                name: fastfetch
+                state: "{{ 'latest' if upgrade | bool else 'present' }}"
+                update_cache: true
 
-          - name: Add current user to docker group
-            ansible.builtin.user:
-              name: "{{ lookup('env', 'USER') }}"
-              groups: docker
-              append: yes
+        - name: Install wslu for wslview
+          become: true
+          ansible.builtin.apt:
+            name: wslu
+            state: "{{ 'latest' if upgrade | bool else 'present' }}"
+          when: "'microsoft' in ansible_kernel | lower"
 
-          - name: Ensure Docker service is started
-            ansible.builtin.service:
-              name: docker
-              state: started
-              enabled: yes
+        - name: Install nerd fonts and wezterm on windows with chocolatey
+          when: "'microsoft' in ansible_kernel | lower"
+          block:
+            # full paths throughout: a fresh chocolatey isn't on WSL's copy of
+            # the windows PATH until WSL restarts. each elevated step raises a
+            # UAC prompt on the windows desktop and waits for it
+            - name: Install chocolatey
+              ansible.builtin.command:
+                argv:
+                  - powershell.exe
+                  - -NoProfile
+                  - -Command
+                  - >-
+                    $p = Start-Process powershell -Verb RunAs -Wait -PassThru
+                    -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+                    '[Net.ServicePointManager]::SecurityProtocol = 3072;
+                    iex ((New-Object System.Net.WebClient).DownloadString(''https://community.chocolatey.org/install.ps1''))';
+                    exit $p.ExitCode
+                chdir: /mnt/c
+                creates: /mnt/c/ProgramData/chocolatey/bin/choco.exe
 
-      - name: Check for existing configs that would conflict with stow
-        ansible.builtin.stat:
-          path: "{{ item }}"
-          follow: false
-        loop:
-          - "{{ ansible_env.HOME }}/.bashrc"
-          - "{{ ansible_env.HOME }}/.bash_aliases"
-          - "{{ ansible_env.HOME }}/.gitconfig"
-          - "{{ ansible_env.HOME }}/.config/nvim"
-          - "{{ ansible_env.HOME }}/.config/starship.toml"
-          - "{{ ansible_env.HOME }}/.config/wezterm"
-          - "{{ ansible_env.HOME }}/.config/alacritty"
-          - "{{ ansible_env.HOME }}/.tmux.conf"
-        register: existing_configs
+            - name: List installed chocolatey packages
+              ansible.builtin.command:
+                cmd: /mnt/c/ProgramData/chocolatey/bin/choco.exe list --limit-output
+                chdir: /mnt/c
+              register: choco_installed
+              changed_when: false
+              check_mode: false
 
-      - name: Remove existing config symlinks
-        ansible.builtin.file:
-          path: "{{ item.item }}"
-          state: absent
-        loop: "{{ existing_configs.results }}"
-        loop_control:
-          label: "{{ item.item }}"
-        when: item.stat.exists and item.stat.islnk
+            # wezterm is only installed when it's missing, never upgraded from
+            # here: its installer wants running terminals closed
+            - name: Work out what chocolatey needs to install
+              ansible.builtin.set_fact:
+                choco_wanted: >-
+                  {{ (nerd_fonts | map(attribute='choco') | list if upgrade | bool else
+                      nerd_fonts | map(attribute='choco') | map('lower')
+                      | reject('in', choco_installed.stdout_lines | map('split', '|') | map('first') | map('lower') | list)
+                      | list)
+                     + ([] if '/mnt/c/Program Files/WezTerm/wezterm.exe' is exists else ['wezterm']) }}
 
-      - name: Back up existing configs that aren't symlinks
-        ansible.builtin.command:
-          cmd: "mv {{ item.item }} {{ item.item }}.bak-{{ ansible_date_time.epoch }}"
-        loop: "{{ existing_configs.results }}"
-        loop_control:
-          label: "{{ item.item }}"
-        when: item.stat.exists and not item.stat.islnk
+            - name: Install or upgrade windows packages
+              ansible.builtin.command:
+                argv:
+                  - powershell.exe
+                  - -NoProfile
+                  - -Command
+                  - >-
+                    $p = Start-Process C:\ProgramData\chocolatey\bin\choco.exe -Verb RunAs -Wait -PassThru
+                    -ArgumentList '{{ 'upgrade' if upgrade | bool else 'install' }}
+                    {{ choco_wanted | join(' ') }} -y';
+                    exit $p.ExitCode
+                chdir: /mnt/c
+              register: choco_install
+              changed_when: true
+              failed_when: choco_install.rc not in [0, 1641, 3010] # the last two mean "reboot needed"
+              when: choco_wanted | length > 0
 
-      - name: Stow Local Configs
-        ansible.builtin.shell:
-          cmd: "stow -v -t {{ lookup('env', 'HOME') }} {{ item }}"
-          chdir: "{{ dotfiles_dir }}"
-        loop: "{{ stow_packages }}"
-        register: stow_result
-        changed_when: "'LINK' in stow_result.stderr"
+            - name: Find the windows user profile
+              ansible.builtin.command:
+                argv: [powershell.exe, -NoProfile, -Command, "$env:USERPROFILE"]
+                chdir: /mnt/c
+              register: windows_profile_raw
+              changed_when: false
+              check_mode: false
 
-      # a tmux server that was started before tpm existed doesn't have this
-      # set, and tpm's scripts refuse to run without it
-      - name: Point a running tmux server at the plugin directory
-        ansible.builtin.shell:
-          cmd: "tmux list-sessions >/dev/null 2>&1 && tmux set-environment -g TMUX_PLUGIN_MANAGER_PATH {{ ansible_env.HOME }}/.tmux/plugins/ || true"
-        changed_when: false
+            - name: Convert the windows user profile to a WSL path
+              ansible.builtin.command:
+                argv: [wslpath, -u, "{{ windows_profile_raw.stdout | trim }}"]
+              register: windows_profile
+              changed_when: false
+              check_mode: false
 
-      - name: Install tmux plugins
-        ansible.builtin.command:
-          cmd: "{{ ansible_env.HOME }}/.tmux/plugins/tpm/bin/install_plugins"
-        register: tpm_install
-        changed_when: "'download success' in tpm_install.stdout"
+            # windows-side wezterm reads this, which loads the config from WSL.
+            # no mode: the windows filesystem doesn't keep unix permissions
+            - name: Install the wezterm loader on windows # noqa: risky-file-permissions
+              ansible.builtin.copy:
+                src: "{{ dotfiles_dir }}/wezterm/.config/wezterm/windows-loader.lua"
+                dest: "{{ windows_profile.stdout }}/.wezterm.lua"
+                backup: true
 
-      - name: Update tmux plugins
-        ansible.builtin.command:
-          cmd: "{{ ansible_env.HOME }}/.tmux/plugins/tpm/bin/update_plugins all"
-        when: upgrade | bool
+        - name: Install nerd fonts on linux
+          when: "'microsoft' not in ansible_kernel | lower"
+          block:
+            - name: Create font directories
+              ansible.builtin.file:
+                path: "{{ ansible_env.HOME }}/.local/share/fonts/{{ item.release }}"
+                state: directory
+                mode: '0755'
+              loop: "{{ nerd_fonts }}"
+              loop_control:
+                label: "{{ item.release }}"
+
+            # every nerd-fonts archive ships a README.md, used as the "done" marker
+            - name: Download and unpack fonts
+              ansible.builtin.unarchive:
+                src: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/{{ item.release }}.zip"
+                dest: "{{ ansible_env.HOME }}/.local/share/fonts/{{ item.release }}"
+                remote_src: true
+                creates: "{{ omit if upgrade | bool else ansible_env.HOME ~ '/.local/share/fonts/' ~ item.release ~ '/README.md' }}"
+              loop: "{{ nerd_fonts }}"
+              loop_control:
+                label: "{{ item.release }}"
+              notify: Refresh the font cache
+
+        - name: Install tmux plugin manager
+          ansible.builtin.git:
+            repo: https://github.com/tmux-plugins/tpm
+            dest: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
+            version: master
+            update: "{{ upgrade | bool }}"
+
+        - name: Install Docker Engine
+          become: true
+          block:
+            - name: Create keyrings directory
+              ansible.builtin.file:
+                path: /etc/apt/keyrings
+                state: directory
+                mode: '0755'
+
+            - name: Add Docker GPG key
+              ansible.builtin.get_url:
+                url: https://download.docker.com/linux/ubuntu/gpg
+                dest: /etc/apt/keyrings/docker.asc
+                mode: '0644'
+                force: true
+
+            - name: Add Docker repository
+              ansible.builtin.apt_repository:
+                repo: >-
+                  deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
+                  https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+                state: present
+                filename: docker
+
+            - name: Install Docker packages
+              ansible.builtin.apt:
+                name:
+                  - docker-ce
+                  - docker-ce-cli
+                  - containerd.io
+                  - docker-buildx-plugin
+                  - docker-compose-plugin
+                state: present
+                update_cache: true
+
+            - name: Add current user to docker group
+              ansible.builtin.user:
+                name: "{{ lookup('env', 'USER') }}"
+                groups: docker
+                append: true
+
+            - name: Ensure Docker service is started
+              ansible.builtin.service:
+                name: docker
+                state: started
+                enabled: true
+
+        - name: Check for existing configs that would conflict with stow
+          ansible.builtin.stat:
+            path: "{{ item }}"
+            follow: false
+          loop:
+            - "{{ ansible_env.HOME }}/.bashrc"
+            - "{{ ansible_env.HOME }}/.bash_aliases"
+            - "{{ ansible_env.HOME }}/.gitconfig"
+            - "{{ ansible_env.HOME }}/.config/nvim"
+            - "{{ ansible_env.HOME }}/.config/starship.toml"
+            - "{{ ansible_env.HOME }}/.config/wezterm"
+            - "{{ ansible_env.HOME }}/.tmux.conf"
+          register: existing_configs
+
+        - name: Remove existing config symlinks
+          ansible.builtin.file:
+            path: "{{ item.item }}"
+            state: absent
+          loop: "{{ existing_configs.results }}"
+          loop_control:
+            label: "{{ item.item }}"
+          when: item.stat.exists and item.stat.islnk
+
+        - name: Back up existing configs that aren't symlinks
+          ansible.builtin.command:
+            cmd: "mv {{ item.item }} {{ item.item }}.bak-{{ ansible_date_time.epoch }}"
+          changed_when: true
+          loop: "{{ existing_configs.results }}"
+          loop_control:
+            label: "{{ item.item }}"
+          when: item.stat.exists and not item.stat.islnk
+
+        - name: Stow Local Configs
+          ansible.builtin.command:
+            cmd: "stow -v -t {{ lookup('env', 'HOME') }} {{ item }}"
+            chdir: "{{ dotfiles_dir }}"
+          loop: "{{ stow_packages }}"
+          register: stow_result
+          changed_when: "'LINK' in stow_result.stderr"
+
+        # a tmux server that was started before tpm existed doesn't have this
+        # set, and tpm's scripts refuse to run without it
+        - name: Point a running tmux server at the plugin directory
+          ansible.builtin.shell:
+            cmd: "tmux list-sessions >/dev/null 2>&1 && tmux set-environment -g TMUX_PLUGIN_MANAGER_PATH {{ ansible_env.HOME }}/.tmux/plugins/ || true"
+          changed_when: false
+
+        - name: Install tmux plugins
+          ansible.builtin.command:
+            cmd: "{{ ansible_env.HOME }}/.tmux/plugins/tpm/bin/install_plugins"
+          register: tpm_install
+          changed_when: "'download success' in tpm_install.stdout"
+
+        - name: Update tmux plugins
+          ansible.builtin.command:
+            cmd: "{{ ansible_env.HOME }}/.tmux/plugins/tpm/bin/update_plugins all"
+          changed_when: true
+          when: upgrade | bool
 
       always:
-        - name: cleanup temp files
+        - name: Clean up temp files
           ansible.builtin.file:
             path: "{{ tmp.path }}"
             state: absent
           check_mode: false
+
+  handlers:
+    - name: Refresh the font cache
+      ansible.builtin.command: fc-cache -f
+      changed_when: false
+      failed_when: false # no fontconfig on a headless machine
