@@ -3,8 +3,8 @@
   connection: local
 
   tasks:
-    # first: the rest of the play needs systemd, and a fresh distro starts
-    # without it. neither file takes effect until WSL restarts
+    # rest of the play needs systemd, and a fresh distro starts
+    # without it.
     - name: Configure WSL
       when: is_wsl
       block:
@@ -32,7 +32,7 @@
           changed_when: false
           check_mode: false
 
-        # no mode: the windows filesystem doesn't keep unix permissions
+        # no mode stanza; windows filesystem doesn't keep unix permissions
         - name: Write .wslconfig on windows # noqa: risky-file-permissions
           ansible.builtin.copy:
             src: wslconfig
@@ -48,7 +48,7 @@
               ./install.sh again.
           when: "'/run/systemd/system' is not exists"
 
-    # before the first cache update: a stale signing key fails the whole update
+    # before the first cache update: a stale signing key fails whole update
     - name: Set up third-party apt repositories
       become: true
       block:
@@ -242,7 +242,7 @@
             - item.item.url is not search('\\.(tar\\.gz|zip)$')
             - item.rc != 0 or item.item.version | regex_replace('^v', '') not in item.stdout
 
-        # node comes from fnm (installed just above) rather than a system
+        # node comes from fnm (installed above) rather than a system
         # package. picks up the newest release of node_version on every run
         - name: Install Node.js
           ansible.builtin.command:
@@ -297,10 +297,9 @@
             deb: "https://github.com/rclone/rclone/releases/download/{{ rclone_version }}/rclone-{{ rclone_version }}-linux-amd64.deb"
           when: check_rclone.rc != 0 or check_rclone.stdout_lines[0] != 'rclone ' ~ rclone_version
 
-        # keyed on uv's own tool directory, and --force, so a copy that pipx
+        # keyed on uv's own tool directory; --force, so a copy that pipx
         # linked into ~/.local/bin earlier gets taken over
-        # the distro's python: left to itself uv prefers any python it has
-        # downloaded for a project, however old
+        # uv prefers any python it has downloaded for a project, however old
         - name: Install python tools with uv
           ansible.builtin.command:
             cmd: "{{ ansible_facts.env.HOME }}/.cargo/bin/uv tool install --force --python /usr/bin/python3 {{ item }}"
@@ -356,6 +355,21 @@
                 cmd: "sh {{ tmp.path }}/webi-install.sh"
                 creates: "{{ ansible_facts.env.HOME }}/.local/bin/webi"
 
+        # the native build, keeps itself up to date
+        - name: Install claude code
+          when: not (ansible_facts.env.HOME ~ '/.local/bin/claude') is exists
+          block:
+            - name: Download claude code installer
+              ansible.builtin.get_url:
+                url: https://claude.ai/install.sh
+                dest: "{{ tmp.path }}/claude-install.sh"
+                mode: '0755'
+
+            - name: Run claude code installer
+              ansible.builtin.command:
+                cmd: "bash {{ tmp.path }}/claude-install.sh"
+                creates: "{{ ansible_facts.env.HOME }}/.local/bin/claude"
+
         - name: Install composer
           become: true
           ansible.builtin.get_url:
@@ -367,8 +381,8 @@
         - name: Install nerd fonts and wezterm on windows with chocolatey
           when: is_wsl
           block:
-            # full paths throughout: a fresh chocolatey isn't on WSL's copy of
-            # the windows PATH until WSL restarts. each elevated step raises a
+            # chocolatey isn't on WSL's copy of the windows PATH until WSL restarts. 
+            # each elevated step raises a
             # UAC prompt on the windows desktop and waits for it
             - name: Install chocolatey
               ansible.builtin.command:
@@ -424,7 +438,7 @@
               when: choco_wanted | length > 0
 
             # windows-side wezterm reads this, which loads the config from WSL.
-            # no mode: the windows filesystem doesn't keep unix permissions
+            # no mode stanza; windows filesystem doesn't keep unix permissions
             - name: Install the wezterm loader on windows # noqa: risky-file-permissions
               ansible.builtin.copy:
                 src: "{{ dotfiles_dir }}/wezterm/.config/wezterm/windows-loader.lua"
