@@ -38,6 +38,7 @@ row yq "$(ver yq --version)" "$(pin yq_version)"
 row hadolint "$(ver hadolint --version)" "$(pin hadolint_version)"
 row tealdeer "$(ver tldr --version)" "$(pin tealdeer_version)"
 row rclone "$(ver rclone version)" "$(pin rclone_version)"
+row gitmux "$(ver gitmux -V)" "$(pin gitmux_version)"
 row node "$(ver node --version)" "$(pin node_version).x"
 
 while read -r name bin version; do
@@ -51,6 +52,7 @@ row ansible-core "$(ver ansible --version)" latest
 row ty "$(ver ty --version)" latest
 row composer "$(ver composer --version)" latest
 row webi "$(ver webi --version)" latest
+row claude "$(ver claude --version)" latest
 row tpm "$(git -C "$HOME/.tmux/plugins/tpm" log -1 --format='%h %cs' 2>/dev/null)" latest
 
 apt_packages=$(awk '/^packages:/ { on = 1; next } on && /^ *- / { print $2; next } on && /^ *#/ { next } on { exit }' "$vars")

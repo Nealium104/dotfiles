@@ -4,14 +4,14 @@ path_prepend() { case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac; }
 path_append() { case ":$PATH:" in *":$1:"*) ;; *) PATH="$PATH:$1" ;; esac; }
 
 path_prepend "$HOME/.local/bin"
-path_prepend "$HOME/.cargo/bin" # before the aliases below look for eza
-path_prepend "$HOME/.local/share/fnm/aliases/default/bin" # the default node, for scripts too
+path_prepend "$HOME/.cargo/bin" # before the aliases start
+path_prepend "$HOME/.local/share/fnm/aliases/default/bin" # the default node
 path_append /usr/local/go/bin
 path_append "$HOME/go/bin"
 export PATH
 
-# ansible hard-fails if this points at a missing file, so only set it on
-# machines that actually have the script
+# ansible hard-fails if this points at a missing file
+# only set on machines that actually have the script
 if [ -f "$HOME/bin/vaultpw.sh" ]; then
   export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/bin/vaultpw.sh"
 fi
@@ -96,7 +96,6 @@ fi
 
 command -v starship >/dev/null && eval "$(starship init bash)"
 
-# Make neovim the default editor
 export EDITOR=nvim
 
 # Config for WezTerm

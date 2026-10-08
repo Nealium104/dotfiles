@@ -44,15 +44,15 @@ config.font_size = 14
 -- event handlers
 wezterm.on("high-opacity", function(window, _)
     local overrides = window:get_config_overrides() or {}
-    overrides.window_background_opacity = .25
+    overrides.window_background_opacity = .9
     overrides.win32_system_backdrop = 'Disable'
     window:set_config_overrides(overrides)
 end)
 
 wezterm.on("low-opacity", function(window, _)
     local overrides = window:get_config_overrides() or {}
-    overrides.window_background_opacity = 0
-    overrides.win32_system_backdrop = 'Acrylic'
+    overrides.window_background_opacity = nil
+    overrides.win32_system_backdrop = nil
     window:set_config_overrides(overrides)
 end)
 

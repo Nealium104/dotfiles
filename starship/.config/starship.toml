@@ -80,6 +80,8 @@ truncation_symbol = "…/"
 symbol = ""
 style = "bg:yellow"
 format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
+truncation_length = 32
+truncation_symbol = "…"
 
 [git_status]
 style = "bg:yellow"

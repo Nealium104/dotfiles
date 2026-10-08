@@ -207,7 +207,9 @@
             mode: '0755'
 
         - name: Check downloaded tools
-          ansible.builtin.command: "{{ ansible_facts.env.HOME }}/.local/bin/{{ item.name }} --version"
+          ansible.builtin.command: >-
+            {{ ansible_facts.env.HOME }}/.local/bin/{{ item.name }}
+            {{ item.version_flag | default('--version') }}
           loop: "{{ release_binaries }}"
           loop_control:
             label: "{{ item.name }}"
@@ -241,6 +243,15 @@
           when:
             - item.item.url is not search('\\.(tar\\.gz|zip)$')
             - item.rc != 0 or item.item.version | regex_replace('^v', '') not in item.stdout
+
+        # WSL has no linux notification service, so tools that call notify-send
+        # (tmux's pomodoro timer) get a script that shows a windows toast
+        - name: Install the notify-send shim
+          ansible.builtin.copy:
+            src: notify-send
+            dest: "{{ ansible_facts.env.HOME }}/.local/bin/notify-send"
+            mode: '0755'
+          when: is_wsl
 
         # node comes from fnm (installed above) rather than a system
         # package. picks up the newest release of node_version on every run
@@ -381,7 +392,7 @@
         - name: Install nerd fonts and wezterm on windows with chocolatey
           when: is_wsl
           block:
-            # chocolatey isn't on WSL's copy of the windows PATH until WSL restarts. 
+            # chocolatey isn't on WSL's copy of the windows PATH until WSL restarts.
             # each elevated step raises a
             # UAC prompt on the windows desktop and waits for it
             - name: Install chocolatey

@@ -45,6 +45,9 @@ elseif vim.fn.executable('xclip') == 1 then
 	}
 end
 
+-- what the OS clipboard held when neovim last wrote or read it
+local last_clipboard
+
 -- Respect explicit registers (including the black hole register).
 vim.api.nvim_create_autocmd("TextYankPost", {
 	desc = "Copy ordinary yanks to the system clipboard",
@@ -53,7 +56,35 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 		local event = vim.v.event
 		if event.operator == "y" and event.regname == "" then
 			vim.fn.setreg("+", event.regcontents, event.regtype)
+			last_clipboard = table.concat(event.regcontents, "\n") .. (event.regtype == "V" and "\n" or "")
 		end
+	end,
+})
+
+-- Plain p pastes whatever was copied outside neovim: when focus comes back and
+-- the OS clipboard has changed, it replaces the unnamed register. Read in the
+-- background so a slow powershell.exe doesn't freeze the editor.
+vim.api.nvim_create_autocmd({ "VimEnter", "FocusGained" }, {
+	desc = "Pull a changed system clipboard into the unnamed register",
+	group = vim.api.nvim_create_augroup("paste-system-clipboard", { clear = true }),
+	callback = function()
+		local paste = vim.g.clipboard and vim.g.clipboard.paste["+"]
+		if not paste then
+			return
+		end
+		if type(paste) == "string" then
+			paste = { "sh", "-c", paste }
+		end
+		vim.system(paste, { text = true }, function(result)
+			local text = result.stdout or ""
+			if result.code ~= 0 or text == "" or text == last_clipboard then
+				return
+			end
+			last_clipboard = text
+			vim.schedule(function()
+				vim.fn.setreg('"', text)
+			end)
+		end)
 	end,
 })
 
