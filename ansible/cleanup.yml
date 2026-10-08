@@ -1,10 +1,10 @@
 - name: Remove tools that setup.yml has replaced
   hosts: localhost
   connection: local
-  # opt-in: `./install.sh --cleanup` (add --check to see what it would do).
-  # Everything here is only removed once its replacement exists, so it's safe
-  # to run before or after setup.yml. When a tool gets swapped out in
-  # setup.yml, add the old one below.
+  # opt-in: ./install.sh --cleanup
+  # --check to see what it would do
+  # Packages here only removed once replacement exists
+  # When tool is swapped out in setup.yml, add the old one below.
 
   vars:
     home: "{{ ansible_facts.env.HOME }}"
@@ -134,7 +134,7 @@
         state: absent
       loop: "{{ broken_links.stdout_lines }}"
 
-    # .bashrc no longer loads homebrew; only remove it if nothing is installed
+    # .bashrc no longer loads homebrew; only remove if nothing is installed
     - name: Look for installed homebrew packages
       ansible.builtin.find:
         paths:
