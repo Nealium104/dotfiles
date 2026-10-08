@@ -1,4 +1,4 @@
-# written by dotfiles/ansible/setup.yml; edit the copy there.
+# copied from ansible/files/wslconfig by dotfiles/ansible/setup.yml.
 # applies to every WSL distro; takes effect after `wsl --shutdown`
 
 [wsl2]
