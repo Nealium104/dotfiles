@@ -1,6 +1,5 @@
-# `./install.sh --upgrade` sets this: brings everything that isn't pinned to its
-# latest release. everything with a version below is pinned; bump the version
-# instead. `./install.sh --versions` shows where things stand
+# default overriden with ./install.sh --upgrade
+# Will set everything to pinned version, everything unpinned to latest
 upgrade: false
 
 # a release tag; "stable" can't be compared against `nvim --version`
@@ -34,7 +33,7 @@ node_bin: "{{ ansible_facts.env.HOME }}/.local/share/fnm/aliases/default/bin"
 # single executables downloaded from a github release into ~/.local/bin. an
 # entry is reinstalled when `<name> --version` doesn't mention its version
 release_binaries:
-  - name: fzf # apt's is years behind and lacks `fzf --bash`
+  - name: fzf
     version: "{{ fzf_version }}"
     url: "https://github.com/junegunn/fzf/releases/download/v{{ fzf_version }}/fzf-{{ fzf_version }}-linux_amd64.tar.gz"
   - name: yq
@@ -46,7 +45,7 @@ release_binaries:
   - name: tldr # tealdeer
     version: "{{ tealdeer_version }}"
     url: "https://github.com/tealdeer-rs/tealdeer/releases/download/{{ tealdeer_version }}/tealdeer-linux-x86_64-musl"
-  - name: hadolint # not in apt
+  - name: hadolint # lint dockerfiles
     version: "{{ hadolint_version }}"
     url: "https://github.com/hadolint/hadolint/releases/download/{{ hadolint_version }}/hadolint-linux-x86_64"
 
@@ -85,7 +84,7 @@ packages:
   - php-mbstring
   - php-xml
   - php-zip
-  - php-xdebug # nvim's php debugger attaches to it
+  - php-xdebug # nvim's php debugger attaches
 
 # third-party apt repos. the key is re-downloaded and the list file rewritten
 # before the first cache update, so a rotated signing key fixes itself on the
@@ -114,8 +113,8 @@ apt_repos:
     key_dest: /etc/apt/keyrings/git-core.asc
     repo: "https://ppa.launchpadcontent.net/git-core/ppa/ubuntu {{ ansible_facts.distribution_release }} main"
 
-# installed with cargo-binstall: the project's own release binary where it
-# publishes one, built from source where it doesn't (git-delta, rbw, tokei).
+# installed with cargo-binstall: the project's release binary if possible
+# built from source where project doesn't have release binary
 # name is the crate, bin is the executable it installs
 cargo_packages:
   - { name: tree-sitter-cli, bin: tree-sitter, version: 0.27.0 }
@@ -139,25 +138,17 @@ cargo_packages:
   - { name: tokei, bin: tokei, version: 15.0.0 }
   - { name: asciinema, bin: asciinema, version: 3.2.0 }
 
-# python command-line tools, installed with `uv tool`: each gets its own
-# virtualenv and its command linked into ~/.local/bin. (ansible itself is
-# installed the same way by install.sh, before this playbook can run)
+# globally available python tools, ansible installed at install.sh
 uv_tools:
   - ansible-lint
   - ty
 
-# installed globally into the node that fnm provides. no language servers:
-# nvim gets those from mason. a new node release starts
-# with none of them, so they're checked on every run
+# globally available node tools; language servers in nvim
 npm_packages:
-  - "@google/gemini-cli"
-  - "@openai/codex"
   - "@prettier/plugin-php"
   - git-standup
-  - neovim
   - obsidian-headless
   - prettier
-  - purgecss
   - typescript
 
 npm_packages_wsl:
@@ -167,7 +158,7 @@ npm_packages_wsl:
 # bash-completion loads them on first use (no shell startup cost)
 bash_completions:
   - { name: uv, cmd: uv generate-shell-completion bash }
-  - { name: uvx, cmd: uvx --generate-shell-completion bash }
+  - { name: uvx, cmd: uvx --generate-shell-completion bash } # uv one-offs
   - { name: starship, cmd: starship completions bash }
   - { name: rustup, cmd: rustup completions bash }
   - { name: cargo, cmd: rustup completions bash cargo }
@@ -180,9 +171,8 @@ bash_completions:
   - { name: rbw, cmd: rbw gen-completions bash }
   - { name: fnm, cmd: fnm completions --shell bash }
 
-# fonts the terminal and prompt configs ask for. on WSL they're installed on
-# the windows side with chocolatey (choco is the package id); on native linux
-# release is the zip name in the nerd-fonts github release
+# WSL installs with chocolatey on Windows side
+# native linux via github release
 nerd_fonts:
   - { choco: nerd-fonts-Hasklig, release: Hasklig }
   - { choco: nerd-fonts-CascadiaCode, release: CascadiaCode } # CaskaydiaCove
@@ -197,7 +187,7 @@ stow_packages:
   - bottom
   - btop # only the theme; btop rewrites btop.conf itself, so that isn't stowed
   - fastfetch
-  - gh # only config.yml; hosts.yml beside it holds the login token
+  - gh # only config.yml; .gitignored hosts.yml holds login token
   - git
   - nvim
   - starship
