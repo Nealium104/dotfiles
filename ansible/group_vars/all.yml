@@ -108,6 +108,11 @@ apt_repos:
     key_url: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xEB65EE19D802F3EB1A13CFE47E2E5CB4D4865F21
     key_dest: /etc/apt/keyrings/fastfetch.asc
     repo: "https://ppa.launchpadcontent.net/zhangsongcui3371/fastfetch/ubuntu {{ ansible_facts.distribution_release }} main"
+  # the distro's git can be too old for .gitconfig: zdiff3 needs 2.35
+  - name: git-core
+    key_url: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF911AB184317630C59970973E363C90F8F1B6217
+    key_dest: /etc/apt/keyrings/git-core.asc
+    repo: "https://ppa.launchpadcontent.net/git-core/ppa/ubuntu {{ ansible_facts.distribution_release }} main"
 
 # installed with cargo-binstall: the project's own release binary where it
 # publishes one, built from source where it doesn't (git-delta, rbw, tokei).
