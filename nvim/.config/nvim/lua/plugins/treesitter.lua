@@ -24,8 +24,11 @@ return {
 		    if ok and stats and stats.size > max_filesize then
 			return
 		    end
-		    -- no-op for filetypes without an installed parser
-		    pcall(vim.treesitter.start, buf)
+		    -- only take over from regex syntax when there are queries to highlight with
+		    local lang = vim.treesitter.language.get_lang(vim.bo[buf].filetype)
+		    if lang and vim.treesitter.query.get(lang, "highlights") then
+			pcall(vim.treesitter.start, buf, lang)
+		    end
 		end,
 	    })
 	end
