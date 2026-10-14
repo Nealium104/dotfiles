@@ -118,7 +118,7 @@ vim.opt.listchars = {
 	trail = '•',
 }
 vim.api.nvim_set_hl(0, "LineNr", { bg = "none" })
-vim.opt.conceallevel = 1
+vim.opt.conceallevel = 0
 
 -- LSP Keymaps
 vim.diagnostic.config({

@@ -389,7 +389,7 @@
             mode: '0755'
             force: "{{ upgrade | bool }}"
 
-        - name: Install nerd fonts and wezterm on windows with chocolatey
+        - name: Install nerd fonts, wezterm and autohotkey on windows with chocolatey
           when: is_wsl
           block:
             # chocolatey isn't on WSL's copy of the windows PATH until WSL restarts.
@@ -418,8 +418,6 @@
               changed_when: false
               check_mode: false
 
-            # wezterm is only installed when it's missing, never upgraded from
-            # here: its installer wants running terminals closed
             - name: Work out what chocolatey needs to install
               ansible.builtin.set_fact:
                 choco_wanted: >-
@@ -427,7 +425,8 @@
                       nerd_fonts | map(attribute='choco') | map('lower')
                       | reject('in', choco_installed.stdout_lines | map('split', '|') | map('first') | map('lower') | list)
                       | list)
-                     + ([] if '/mnt/c/Program Files/WezTerm/wezterm.exe' is exists else ['wezterm']) }}
+                     + ([] if '/mnt/c/Program Files/WezTerm/wezterm.exe' is exists else ['wezterm'])
+                     + ([] if '/mnt/c/Program Files/AutoHotkey/v2/AutoHotkey64.exe' is exists else ['autohotkey']) }}
 
             # minimized: a click in the console window selects text, which
             # pauses choco until a key is pressed there
@@ -455,6 +454,61 @@
                 src: "{{ dotfiles_dir }}/wezterm/.config/wezterm/windows-loader.lua"
                 dest: "{{ windows_profile.stdout }}/.wezterm.lua"
                 backup: true
+
+            # asked of windows rather than built from the profile path:
+            # Documents may be redirected into OneDrive
+            - name: Find the windows Documents and Startup folders
+              ansible.builtin.command:
+                argv:
+                  - powershell.exe
+                  - -NoProfile
+                  - -Command
+                  - "[Environment]::GetFolderPath('MyDocuments'); [Environment]::GetFolderPath('Startup')"
+                chdir: /mnt/c
+              register: windows_folders
+              changed_when: false
+              check_mode: false
+
+            - name: Note where the autohotkey scripts and startup shortcuts go
+              ansible.builtin.set_fact:
+                ahk_dir_win: "{{ windows_folders.stdout_lines[0] | trim }}\\AutoHotkey"
+                startup_win: "{{ windows_folders.stdout_lines[1] | trim }}"
+
+            - name: Convert those folders to WSL paths
+              ansible.builtin.command:
+                argv: [wslpath, -u, "{{ item }}"]
+              loop: ["{{ ahk_dir_win }}", "{{ startup_win }}"]
+              register: windows_folders_wsl
+              changed_when: false
+              check_mode: false
+
+            # not a stow package: windows can't follow a symlink into WSL.
+            # no mode stanza; windows filesystem doesn't keep unix permissions
+            - name: Copy the autohotkey scripts to windows # noqa: risky-file-permissions
+              ansible.builtin.copy:
+                src: "{{ dotfiles_dir }}/autohotkey/"
+                dest: "{{ windows_folders_wsl.results[0].stdout }}/"
+              notify: Restart the autohotkey scripts
+
+            # runs AutoHotkey64.exe directly, so the launcher doesn't ask
+            # whether a script is v1 or v2
+            - name: Start the autohotkey scripts at login
+              ansible.builtin.command:
+                argv:
+                  - powershell.exe
+                  - -NoProfile
+                  - -Command
+                  - >-
+                    $s = (New-Object -ComObject WScript.Shell).CreateShortcut('{{ startup_win }}\{{ item | basename | splitext | first }}.lnk');
+                    $s.TargetPath = '{{ autohotkey_exe }}';
+                    $s.Arguments = '"{{ ahk_dir_win }}\{{ item | basename }}"';
+                    $s.WorkingDirectory = '{{ ahk_dir_win }}';
+                    $s.Save()
+                chdir: /mnt/c
+                creates: "{{ windows_folders_wsl.results[1].stdout }}/{{ item | basename | splitext | first }}.lnk"
+              loop: "{{ query('fileglob', dotfiles_dir ~ '/autohotkey/*.ahk') }}"
+              loop_control:
+                label: "{{ item | basename }}"
 
         - name: Install nerd fonts on linux
           when: not is_wsl
@@ -537,6 +591,7 @@
             - "{{ ansible_facts.env.HOME }}/.bash_aliases"
             - "{{ ansible_facts.env.HOME }}/.inputrc"
             - "{{ ansible_facts.env.HOME }}/.gitconfig"
+            - "{{ ansible_facts.env.HOME }}/.gitconfig-personal"
             - "{{ ansible_facts.env.HOME }}/.config/bat"
             - "{{ ansible_facts.env.HOME }}/.config/bottom"
             - "{{ ansible_facts.env.HOME }}/.config/btop/themes/catppuccin_macchiato.theme"
@@ -619,3 +674,16 @@
     - name: Say that WSL needs a restart
       ansible.builtin.debug:
         msg: WSL settings changed. Run `wsl --shutdown` from windows to apply them.
+
+    - name: Restart the autohotkey scripts
+      ansible.builtin.command:
+        argv:
+          - powershell.exe
+          - -NoProfile
+          - -Command
+          - "Start-Process '{{ autohotkey_exe }}' -ArgumentList '/restart', '\"{{ ahk_dir_win }}\\{{ item | basename }}\"'"
+        chdir: /mnt/c
+      loop: "{{ query('fileglob', dotfiles_dir ~ '/autohotkey/*.ahk') }}"
+      loop_control:
+        label: "{{ item | basename }}"
+      changed_when: true

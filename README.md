@@ -42,12 +42,15 @@ into place.
   Each is a [stow](https://www.gnu.org/software/stow/) package laid out as it
   should appear under `~`. To add one, create the directory, add it to
   `stow_packages`, and add its path to the conflict check in `setup.yml`.
+  `autohotkey/` is the exception: Windows-only scripts, copied rather than
+  stowed.
 - **Replaced tools** go in `ansible/cleanup.yml`, which removes an old copy
   only once its replacement exists.
 
 ## On WSL
 
-Fonts and WezTerm are installed on the Windows side with Chocolatey, which
-raises UAC prompts. `/etc/wsl.conf` and the Windows `.wslconfig` are written
-too; changes to those need `wsl --shutdown`, and on a fresh distro the first
+Fonts, WezTerm and AutoHotkey are installed on the Windows side with
+Chocolatey, which raises UAC prompts. The scripts in `autohotkey/` are copied
+to `Documents\AutoHotkey` and started at login. `/etc/wsl.conf` and the
+Windows `.wslconfig` are written too; changes to those need `wsl --shutdown`, and on a fresh distro the first
 run stops after writing them and asks for that.

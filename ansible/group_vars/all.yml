@@ -29,6 +29,9 @@ dotfiles_dir: "{{ playbook_dir | dirname }}"
 
 is_wsl: "{{ 'microsoft' in ansible_facts.kernel | lower }}"
 
+# runs the scripts in autohotkey/ on the windows side (WSL only)
+autohotkey_exe: 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe'
+
 # where fnm keeps the default node; .bashrc puts the same directory on PATH
 node_bin: "{{ ansible_facts.env.HOME }}/.local/share/fnm/aliases/default/bin"
 

@@ -16,6 +16,10 @@ if [ -f "$HOME/bin/vaultpw.sh" ]; then
   export ANSIBLE_VAULT_PASSWORD_FILE="$HOME/bin/vaultpw.sh"
 fi
 
+if [ -n "$WSL_DISTRO_NAME" ]; then
+  export VAGRANT_DEFAULT_PROVIDER=libvirt
+fi
+
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;

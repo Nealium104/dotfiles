@@ -29,8 +29,6 @@
 	cmd = difft "$LOCAL" "$REMOTE"
 [pager]
 	difftool = true
-[pull]
-	rebase = true
 [rebase]
 	autoStash = true
 [push]
@@ -45,3 +43,7 @@
 	sort = -committerdate
 [commit]
 	verbose = true
+[includeIf "hasconfig:remote.*.url:https://github.com/Nealium104/**"]
+	path = ~/.gitconfig-personal
+[includeIf "hasconfig:remote.*.url:git@github.com:Nealium104/**"]
+	path = ~/.gitconfig-personal
