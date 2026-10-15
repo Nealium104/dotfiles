@@ -6,8 +6,9 @@
 repo="$(dirname "$(dirname "$(readlink -f "$0")")")"
 vars="$repo/ansible/group_vars/all.yml"
 
-# fallbacks for when this isn't run from an interactive shell
-PATH="$PATH:$HOME/.cargo/bin:$HOME/.local/bin:/usr/local/go/bin:$HOME/.local/share/fnm/aliases/default/bin"
+# first, so the playbook's copies win over any other go or node on the
+# machine
+PATH="$HOME/.cargo/bin:$HOME/.local/bin:/usr/local/go/bin:$HOME/.local/share/fnm/aliases/default/bin:$PATH"
 
 # value of a top-level `key: value` line in group_vars, without a leading v
 pin() { awk -F': *' -v k="$1" '$1 == k { sub(/^v/, "", $2); print $2 }' "$vars"; }
