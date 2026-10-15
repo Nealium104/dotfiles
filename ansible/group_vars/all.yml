@@ -22,6 +22,9 @@ rclone_version: v1.75.1
 
 gitmux_version: v0.11.5
 
+# WSL only, and only when discord is installed on windows
+npiperelay_version: v0.1.0
+
 # install.sh installs this before the playbook runs, and reads the pin from here
 binstall_version: v1.25.2
 

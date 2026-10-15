@@ -54,3 +54,6 @@ Chocolatey, which raises UAC prompts. The scripts in `autohotkey/` are copied
 to `Documents\AutoHotkey` and started at login. `/etc/wsl.conf` and the
 Windows `.wslconfig` are written too; changes to those need `wsl --shutdown`, and on a fresh distro the first
 run stops after writing them and asks for that.
+
+If Discord is installed on Windows, `npiperelay` is downloaded so Neovim's
+cord plugin can reach it and show what's being edited.

@@ -510,6 +510,39 @@
               loop_control:
                 label: "{{ item | basename }}"
 
+        # discord listens on a windows named pipe, which nvim's cord plugin
+        # can't open from WSL. config/discord.lua bridges to it with socat and
+        # this relay
+        - name: Set up discord presence for neovim
+          when: is_wsl
+          block:
+            - name: Look for discord on windows
+              ansible.builtin.find:
+                paths: "{{ windows_profile.stdout }}/AppData/Local"
+                patterns: [Discord, DiscordPTB, DiscordCanary]
+                file_type: directory
+              register: discord_installs
+
+            - name: Install npiperelay
+              when: discord_installs.matched > 0
+              block:
+                - name: Ensure cord's bin directory exists
+                  ansible.builtin.file:
+                    path: "{{ ansible_facts.env.HOME }}/.local/share/nvim/cord/bin"
+                    state: directory
+                    mode: '0755'
+
+                # it has no --version to compare against, so the pin only
+                # applies where it isn't installed yet
+                - name: Download npiperelay
+                  ansible.builtin.unarchive:
+                    src: "https://github.com/jstarks/npiperelay/releases/download/{{ npiperelay_version }}/npiperelay_windows_amd64.zip"
+                    dest: "{{ ansible_facts.env.HOME }}/.local/share/nvim/cord/bin"
+                    remote_src: true
+                    include: [npiperelay.exe]
+                    mode: '0755'
+                    creates: "{{ ansible_facts.env.HOME }}/.local/share/nvim/cord/bin/npiperelay.exe"
+
         - name: Install nerd fonts on linux
           when: not is_wsl
           block:
