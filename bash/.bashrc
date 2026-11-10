@@ -119,3 +119,6 @@ command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
 # after everything that touches the prompt
 command -v direnv >/dev/null && eval "$(direnv hook bash)"
+
+# opencode
+export PATH=/home/neal/.opencode/bin:$PATH

@@ -38,6 +38,11 @@ autohotkey_exe: 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe'
 # where fnm keeps the default node; .bashrc puts the same directory on PATH
 node_bin: "{{ ansible_facts.env.HOME }}/.local/share/fnm/aliases/default/bin"
 
+# PATH for the headless nvim install tasks: mason builds servers with npm (node),
+# go (gopls) and python; ruff and friends live in ~/.local/bin and ~/.cargo/bin
+nvim_install_path: "{{ [node_bin, '/usr/local/go/bin', ansible_facts.env.HOME ~ '/.cargo/bin',
+  ansible_facts.env.HOME ~ '/.local/bin', ansible_facts.env.PATH] | join(':') }}"
+
 # single executables downloaded from a github release into ~/.local/bin. an
 # entry is reinstalled when `<name> --version` doesn't mention its version.
 # version_flag is for a tool that spells --version differently
@@ -75,6 +80,7 @@ packages:
   - util-linux
   - python3-venv # mason needs it for python-based tools
   - shellcheck
+  - shfmt # shell formatter, used by nvim (conform)
   - xclip # nvim's clipboard fallback
   - ffmpeg
   - btop
@@ -155,6 +161,7 @@ cargo_packages:
 uv_tools:
   - ansible-lint
   - ty
+  - ruff # python formatter/linter, used by nvim (conform)
 
 # globally available node tools; language servers in nvim
 npm_packages:

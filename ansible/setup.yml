@@ -630,6 +630,7 @@
             - "{{ ansible_facts.env.HOME }}/.config/btop/themes/catppuccin_macchiato.theme"
             - "{{ ansible_facts.env.HOME }}/.config/fastfetch"
             - "{{ ansible_facts.env.HOME }}/.config/gh/config.yml"
+            - "{{ ansible_facts.env.HOME }}/.config/git/ignore"
             - "{{ ansible_facts.env.HOME }}/.config/nvim"
             - "{{ ansible_facts.env.HOME }}/.config/starship.toml"
             - "{{ ansible_facts.env.HOME }}/.config/wezterm"
@@ -661,6 +662,35 @@
           loop: "{{ stow_packages }}"
           register: stow_result
           changed_when: "'LINK' in stow_result.stderr"
+
+        # needs the config stowed above, plus node (npm servers), go (gopls) and
+        # python3-venv (python servers) from earlier tasks. plugins go to the
+        # versions in lazy-lock.json; --upgrade updates them and rewrites the lockfile
+        - name: Install neovim plugins
+          ansible.builtin.command:
+            argv:
+              - nvim
+              - --headless
+              - -c
+              - "lua require('config.bootstrap').plugins({ upgrade = {{ upgrade | bool | lower }} })"
+          environment:
+            PATH: "{{ nvim_install_path }}"
+          register: nvim_plugins
+          changed_when: "'bootstrap: plugins changed 0' not in nvim_plugins.stdout"
+
+        # language servers, debug adapters and treesitter parsers listed in
+        # nvim/.config/nvim/lua/config/tools.lua; only missing ones are installed
+        - name: Install neovim language servers and parsers
+          ansible.builtin.command:
+            argv:
+              - nvim
+              - --headless
+              - -c
+              - "lua require('config.bootstrap').run({ upgrade = {{ upgrade | bool | lower }} })"
+          environment:
+            PATH: "{{ nvim_install_path }}"
+          register: nvim_bootstrap
+          changed_when: "'bootstrap: installed 0' not in nvim_bootstrap.stdout"
 
         # btop saves its settings back to btop.conf on exit, so only this one
         # line is managed; btop fills in the rest

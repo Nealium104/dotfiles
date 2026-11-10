@@ -1,0 +1,16 @@
+# shellcheck shell=bash
+# Force full-path target completion so show-all-if-ambiguous doesn't
+# strip "dir/" prefixes from targets (bash-completion's _make uses
+# display-only mode for any COMP_TYPE other than 9).
+for _f in /usr/share/bash-completion/completions/make \
+          /opt/homebrew/share/bash-completion/completions/make \
+          /usr/local/share/bash-completion/completions/make; do
+    # shellcheck source=/dev/null
+    [[ -r $_f ]] && { source "$_f"; break; }
+done
+unset _f
+
+if declare -F _make >/dev/null; then
+    _make_fullpath() { local COMP_TYPE=9; _make "$@"; }
+    complete -F _make_fullpath make gmake gnumake pmake colormake bmake
+fi
