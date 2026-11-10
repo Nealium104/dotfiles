@@ -43,6 +43,9 @@
 	sort = -committerdate
 [commit]
 	verbose = true
+[help]
+	# Mistyped commands (git stuats) ask "Run 'status' instead?" rather than failing
+	autocorrect = prompt
 [includeIf "hasconfig:remote.*.url:https://github.com/Nealium104/**"]
 	path = ~/.gitconfig-personal
 [includeIf "hasconfig:remote.*.url:git@github.com:Nealium104/**"]
