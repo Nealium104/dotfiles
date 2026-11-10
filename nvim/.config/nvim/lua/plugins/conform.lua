@@ -13,7 +13,9 @@ return {
       local util = require("conform.util")
       return {
          default_format_opts = { lsp_format = "fallback" },
-         formatters_by_ft = {
+         -- From config/languages.lua (tools installed by the dotfiles Ansible setup),
+         -- plus PHP, which picks the project's own tool.
+         formatters_by_ft = vim.tbl_extend("force", vim.deepcopy(require("config.tools").formatters_by_ft), {
             php = function(bufnr)
                -- Use the project's own formatter/version, then fall back to Intelephense.
                for _, name in ipairs({ "php_cs_fixer", "phpcbf", "pint" }) do
@@ -24,18 +26,7 @@ return {
                end
                return {}
             end,
-            -- Tools installed by the dotfiles Ansible setup (apt/uv/npm), not Mason.
-            python = { "ruff_organize_imports", "ruff_format" },
-            sh = { "shfmt" },
-            javascript = { "prettier" },
-            javascriptreact = { "prettier" },
-            typescript = { "prettier" },
-            typescriptreact = { "prettier" },
-            css = { "prettier" },
-            html = { "prettier" },
-            json = { "prettier" },
-            yaml = { "prettier" },
-         },
+         }),
          formatters = {
             -- Indent like the buffer (filetypes.lua), unless the project has its own .prettierrc.
             prettier = {

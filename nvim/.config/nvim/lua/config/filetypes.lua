@@ -24,29 +24,8 @@ vim.filetype.add({
    },
 })
 
-local indent_by_filetype = {
-   -- filetype = { width, use_tabs }
-   html = { 4 },
-   css = { 2 },
-   javascript = { 2 },
-   javascriptreact = { 2 },
-   typescript = { 2 },
-   typescriptreact = { 2 },
-   mustache = { 4 },
-
-   php = { 4 },
-   sh = { 4 },
-   python = { 4 },
-   go = { 4, true },
-   sql = { 2 },
-
-   nginx = { 4 },
-   dockerfile = { 2 },
-
-   cs = { 4 }, -- c sharp
-   rust = { 4 },
-   lua = { 3 },
-}
+-- Per-filetype indentation, from config/languages.lua: filetype -> { width, tabs }
+local indent_by_filetype = require("config.tools").indent_by_ft
 
 local function set_indent(width, use_tabs)
    vim.opt_local.expandtab = not use_tabs
@@ -63,13 +42,13 @@ vim.api.nvim_create_autocmd("FileType", {
    group = vim.api.nvim_create_augroup("filetype-indent", { clear = true }),
    callback = function(args)
       local spec = indent_by_filetype[args.match]
-      -- docker compose
+      -- docker compose: plain yaml, so matched by filename
       local name = vim.fs.basename(args.file)
       if not spec and args.match == "yaml" and (name:match("^compose.*%.ya?ml$") or name:match("^docker%-compose.*%.ya?ml$")) then
-         spec = { 2 }
+         spec = { width = 2 }
       end
       if spec then
-         set_indent(spec[1], spec[2])
+         set_indent(spec.width, spec.tabs)
       end
    end,
 })

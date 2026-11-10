@@ -1,16 +1,13 @@
 return {
    "mfussenegger/nvim-lint",
    event = { "BufReadPost", "BufNewFile" },
-   -- Linters for filetypes whose language server doesn't cover them.
-   -- Language servers installed from Ansible go through nvim-lint.
+   -- Linters for filetypes whose language server doesn't cover them (hadolint,
+   -- yamllint). The tools come from the dotfiles Ansible setup. ruff and
+   -- shellcheck lint through their language servers, not through this plugin.
    config = function()
       local lint = require("lint")
-      lint.linters_by_ft = {
-         dockerfile = { "hadolint" },
-         -- Plain YAML and compose files only: ansiblels already runs ansible-lint,
-         -- which includes the yamllint rules, on yaml.ansible buffers.
-         yaml = { "yamllint" },
-      }
+      -- From config/languages.lua.
+      lint.linters_by_ft = vim.deepcopy(require("config.tools").linters_by_ft)
 
       local function run_lint()
          -- Skip quietly when a tool isn't installed yet

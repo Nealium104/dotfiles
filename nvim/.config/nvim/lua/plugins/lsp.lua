@@ -74,11 +74,15 @@ return {
          settings = { basedpyright = { analysis = { typeCheckingMode = "standard" } } },
       })
       -- ruff's language server: lint diagnostics and quick fixes for Python.
-      -- Uses the ruff the dotfiles install (uv), not mason; hover stays with basedpyright.
+      -- Hover stays with basedpyright.
       vim.lsp.config("ruff", {
          on_attach = function(client) client.server_capabilities.hoverProvider = false end,
       })
-      vim.lsp.enable("ruff")
+      -- Servers whose binary the dotfiles Ansible setup installs (`system` in
+      -- config/languages.lua): enabled here, never installed by mason.
+      for _, server in ipairs(require("config.tools").system_servers) do
+         vim.lsp.enable(server)
+      end
       vim.lsp.config("html", {
          filetypes = { "html", "mustache", "handlebars" },
          init_options = {
