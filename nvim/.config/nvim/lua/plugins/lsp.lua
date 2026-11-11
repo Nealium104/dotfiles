@@ -129,14 +129,14 @@ return {
             map("<leader>cs", vim.lsp.buf.document_symbol, "Document symbols")
             map("<leader>cS", function() require("telescope.builtin").lsp_dynamic_workspace_symbols() end, "Workspace symbols")
 
-            -- Show inlay hints when supported (toggle: <leader>uh).
+            -- Show inlay hints when supported (toggle: <leader>ui).
             local client = vim.lsp.get_client_by_id(args.data.client_id)
             if client and client:supports_method("textDocument/inlayHint") then
                vim.lsp.inlay_hint.enable(true, { bufnr = args.buf })
             end
          end,
       })
-      vim.keymap.set("n", "<leader>uh", function()
+      vim.keymap.set("n", "<leader>ui", function()
          vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = 0 }), { bufnr = 0 })
       end, { desc = "Toggle inlay hints" })
       -- Diagnostics remain available even before a language server attaches.
