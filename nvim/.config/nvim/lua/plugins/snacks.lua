@@ -60,10 +60,6 @@ return {
          -- room for the bonsai, and exactly the width of the key row below
          width = 80,
          sections = {
-            -- a bonsai (in place of the header) with a fortune and triforce stats
-            -- under it, every key on one row between two lines, then the
-            -- startup time. the bonsai and fortune fall back to nothing special
-            -- when their commands (apt cbonsai, fortune-mod) aren't installed
             function()
                if vim.fn.executable("cbonsai") == 0 then return { section = "header" } end
                -- leaves for the season, on the same dates drop.nvim switches its
@@ -73,28 +69,57 @@ return {
                   or (md >= 621 and md <= 921) and "&" -- summer
                   or (md >= 922 and md <= 1220) and "&,%,#" -- autumn
                   or "*,+,·" -- winter frost
-               -- grows live (-l) for 3-10 seconds, then stays (-p). ttl 0:
-               -- a new tree every time instead of snacks' cached output
                return {
                   section = "terminal",
-                  cmd = ("cbonsai -lp -t 0.01 -L 40 -M 5 -c '%s'"):format(leaves),
-                  height = 22,
+                  cmd = ("cbonsai -li -t 0.06 -w 10 -L 40 -M 5 -c '%s'"):format(leaves),
+                  height = 30,
                   ttl = 0,
                }
             end,
+            -- a short quote from the obsidian vault, a kindle highlight or a
+            -- quote note (config/quote.lua picks one and leaves out long
+            -- passages)
             function()
-               if vim.fn.executable("fortune") == 0 then return nil end
-               local out = vim.system({ "fortune", "-s" }, { text = true }):wait(500)
-               if out.code ~= 0 or not out.stdout then return nil end
-               -- the footer colour in bold, set here so it follows colorscheme changes
-               local footer = vim.api.nvim_get_hl(0, { name = "SnacksDashboardFooter", link = false })
-               vim.api.nvim_set_hl(0, "SnacksDashboardQuote", vim.tbl_extend("force", footer, { bold = true }))
-               local items = {}
-               for line in out.stdout:gsub("\t", "  "):gmatch("[^\n]+") do
-                  table.insert(items, { align = "center", text = { { vim.trim(line), hl = "SnacksDashboardQuote" } } })
+               local quotes = require("config.quote")
+               local ok, quote = pcall(quotes.random)
+               if not ok or not quote then return nil end
+               -- colours from the catppuccin palette, set here so they follow a
+               -- flavour change. without catppuccin: the dashboard's description
+               -- colour on the cursorline background
+               local has_palette, palette = pcall(function() return require("catppuccin.palettes").get_palette() end)
+               local fg, credit_fg, bg
+               if has_palette then
+                  fg, credit_fg, bg = palette.blue, palette.overlay2, palette.surface0
+               else
+                  fg = vim.api.nvim_get_hl(0, { name = "SnacksDashboardDesc", link = false }).fg
+                  credit_fg, bg = fg, vim.api.nvim_get_hl(0, { name = "CursorLine", link = false }).bg
                end
-               -- a blank line between the fortune and the triforce stats
-               if #items > 0 then items[#items].padding = 1 end
+               vim.api.nvim_set_hl(0, "SnacksDashboardQuote", { fg = fg, bg = bg, bold = true, italic = true })
+               vim.api.nvim_set_hl(0, "SnacksDashboardQuoteCredit", { fg = credit_fg, bg = bg, italic = true })
+               vim.api.nvim_set_hl(0, "SnacksDashboardQuoteCard", { bg = bg })
+
+               local rows = {} ---@type { [1]: string, [2]: string }[] text, highlight
+               for _, line in ipairs(quotes.wrap(quote.text, 68)) do
+                  table.insert(rows, { line, "SnacksDashboardQuote" })
+               end
+               local credit = quotes.credit(quote)
+               if credit then table.insert(rows, { credit, "SnacksDashboardQuoteCredit" }) end
+               -- every row padded to the same width, two spaces either side of
+               -- the longest, so the background is a block instead of ragged
+               -- edges; a blank row above and below
+               local width = 0
+               for _, row in ipairs(rows) do width = math.max(width, vim.fn.strdisplaywidth(row[1])) end
+               width = width + 4
+               local function row_item(text, hl)
+                  local left = math.floor((width - vim.fn.strdisplaywidth(text)) / 2)
+                  local right = width - vim.fn.strdisplaywidth(text) - left
+                  return { align = "center", text = { { (" "):rep(left) .. text .. (" "):rep(right), hl = hl } } }
+               end
+               local items = { row_item("", "SnacksDashboardQuoteCard") }
+               for _, row in ipairs(rows) do table.insert(items, row_item(row[1], row[2])) end
+               table.insert(items, row_item("", "SnacksDashboardQuoteCard"))
+               -- a blank line between the card and the triforce stats
+               items[#items].padding = 1
                return items
             end,
             function()
@@ -102,13 +127,18 @@ return {
                if not ok then return nil end
                local s = triforce.load()
                local function num(n) return tostring(math.floor(n)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "") end
+               -- the streak's flame in orange (catppuccin's peach)
+               local has_palette, palette = pcall(function() return require("catppuccin.palettes").get_palette() end)
+               vim.api.nvim_set_hl(0, "SnacksDashboardStreak", has_palette and { fg = palette.peach } or { link = "DiagnosticWarn" })
                return {
                   {
                      align = "center",
                      text = {
                         { "Lv " .. s.level, hl = "special" },
                         { "  ·  " .. num(s.xp) .. " / " .. num(triforce.xp_for_next_level(s.level)) .. " XP", hl = "desc" },
-                        { "  ·  󰈸 " .. s.current_streak .. "-day streak (best " .. s.longest_streak .. ")", hl = "desc" },
+                        { "  ·  ", hl = "desc" },
+                        { "󰈸", hl = "SnacksDashboardStreak" },
+                        { " " .. s.current_streak .. "-day streak (best " .. s.longest_streak .. ")", hl = "desc" },
                      },
                   },
                }

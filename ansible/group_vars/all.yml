@@ -96,7 +96,6 @@ packages:
   - pinentry-curses # rbw asks for the vault password through it
   # whimsy
   - sl # a steam locomotive for typing `sl` instead of `ls`
-  - fortune-mod # a fortune on the nvim dashboard
   - cbonsai # the bonsai at the top of the nvim dashboard
   # from the repos in apt_repos below
   - gh
