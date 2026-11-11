@@ -142,6 +142,12 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 vim.keymap.set("n", "<space><space>x", "<cmd>source %<CR>")
 vim.keymap.set("n", "<space>x", ":.lua<CR>")
 vim.keymap.set("v", "<space>x", ":lua<CR>")
+-- (e)dit (u)ndo tree: every version of the file, kept across sessions by
+-- undofile; press again to close. ships with neovim but isn't loaded by default
+vim.keymap.set("n", "<space>eu", function()
+   vim.cmd.packadd("nvim.undotree")
+   require("undotree").open()
+end, { desc = "Undo tree" })
 
 -- Tools
 vim.opt.grepprg = "rg --vimgrep --smart-case"

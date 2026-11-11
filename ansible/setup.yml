@@ -48,7 +48,9 @@
               ./install.sh again.
           when: "'/run/systemd/system' is not exists"
 
-    # before the first cache update: a stale signing key fails whole update
+    # before the first cache update: a stale signing key fails whole update.
+    # a normal run only fetches a key that's missing, so an unreachable
+    # keyserver doesn't stop it; --upgrade refreshes them all
     - name: Set up third-party apt repositories
       become: true
       block:
@@ -63,7 +65,7 @@
             url: "{{ item.key_url }}"
             dest: "{{ item.key_dest }}"
             mode: '0644'
-            force: true
+            force: "{{ upgrade | bool }}"
           loop: "{{ apt_repos }}"
           loop_control:
             label: "{{ item.name }}"
@@ -89,12 +91,31 @@
           loop_control:
             label: "{{ item.name }}"
 
+    - name: List installed packages
+      ansible.builtin.package_facts:
+
+    # apt update reaches every repo, so a normal run only does it when a
+    # package still needs installing; installed ones are left as they are
+    # anyway. --upgrade always updates
     - name: Update apt cache and install core packages
       become: true
+      vars:
+        missing_packages: "{{ packages | reject('in', ansible_facts.packages) | list }}"
       ansible.builtin.apt:
         name: "{{ packages }}"
         state: "{{ 'latest' if upgrade | bool else 'present' }}"
-        update_cache: true
+        update_cache: "{{ upgrade | bool or missing_packages | length > 0 }}"
+
+    # from the lists apt already has; the step above refreshes them on
+    # --upgrade or a fresh machine. reported at the end of the run
+    - name: Install optional packages
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: "{{ 'latest' if upgrade | bool else 'present' }}"
+      loop: "{{ optional_packages }}"
+      register: optional_install
+      ignore_errors: true
 
     - name: Create a temporary directory for packages
       ansible.builtin.tempfile:
@@ -748,6 +769,13 @@
             path: "{{ tmp.path }}"
             state: absent
           check_mode: false
+
+    - name: Report optional packages that didn't install
+      vars:
+        failed: "{{ optional_install.results | selectattr('failed') | list }}"
+      ansible.builtin.debug:
+        msg: "{{ failed | map(attribute='item') | zip(failed | map(attribute='msg', default='failed')) | map('join', ': ') | list }}"
+      when: failed | length > 0
 
   handlers:
     - name: Refresh the font cache

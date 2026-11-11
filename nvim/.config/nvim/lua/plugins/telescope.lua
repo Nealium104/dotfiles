@@ -10,25 +10,80 @@ return {
       -- Loads on first use (these keys, :Telescope, or a require) instead of at startup.
       cmd = 'Telescope',
       keys = {
-         -- (f)ind (h)elp / files in (d)irectory / by (g)rep
-         { '<space>fh', function() require('telescope.builtin').help_tags() end, desc = 'Find help' },
-         { '<space>fd', function() require('telescope.builtin').find_files() end, desc = 'Find files' },
-         { '<space>fg', function() require('telescope.builtin').live_grep() end, desc = 'Find by grep' },
-         -- (f)ind open (b)uffers / (r)ecent files / (R)esume picker
-         { '<space>fb', function() require('telescope.builtin').buffers() end, desc = 'Find buffers' },
-         { '<space>fr', function() require('telescope.builtin').oldfiles() end, desc = 'Find recent files' },
-         { '<space>fR', function() require('telescope.builtin').resume() end, desc = 'Resume finder' },
-         -- (e)dit (n)eovim
+         -- (f)ind
+            -- (h)elp - search neovim help (plugins as well)
+            -- (f)iles - search for files in working directory
+            -- (g)rep - search a pattern in working directory
+            -- (b)uffers
+            -- (r)ecent files
+            -- (R)esume picker
+            -- (o)bsidian files
+            -- (k)eymaps - search every mapping and its description
+            -- (w)ord - grep the word under the cursor in working directory
+         {
+            '<space>fh',
+            function() require('telescope.builtin').help_tags() end,
+            desc = 'Find help',
+         },
+         {
+            '<space>ff',
+            function() require('telescope.builtin').find_files() end,
+            desc = 'Find files',
+         },
+         {
+            '<space>fg',
+            function() require('telescope.builtin').live_grep() end,
+            desc = 'Find by grep',
+         },
+         {
+            '<space>fb',
+            function() require('telescope.builtin').buffers() end,
+            desc = 'Find buffers',
+         },
+         {
+            '<space>fr',
+            function() require('telescope.builtin').oldfiles() end,
+            desc = 'Find recent files',
+         },
+         {
+            '<space>fR',
+            function() require('telescope.builtin').resume() end,
+            desc = 'Resume finder',
+         },
+         {
+            '<space>fo',
+            function() require('telescope.builtin').find_files({ cwd = vim.fn.expand('~/obsidian') }) end,
+            desc = 'Find Obsidian notes',
+         },
+         {
+            '<space>fk',
+            function() require('telescope.builtin').keymaps() end,
+            desc = 'Find keymaps',
+         },
+         {
+            '<space>fw',
+            function() require('telescope.builtin').grep_string() end,
+            desc = 'Find word under cursor',
+         },
+
+         -- (e)dit
+            -- (n)eovim - edit neovim config
+            -- (h)istory - edit history file
+            -- (d)otfiles - edit dotfiles repo
          {
             '<space>en',
             function() require('telescope.builtin').find_files({ cwd = vim.fn.stdpath('config') }) end,
             desc = 'Edit Neovim config',
          },
-         -- (f)ind (obsidian)
          {
-            '<space>fo',
-            function() require('telescope.builtin').find_files({ cwd = vim.fn.expand('~/obsidian') }) end,
-            desc = 'Find Obsidian notes',
+            '<space>eh',
+            '<cmd>edit ~/.bash_history<cr>',
+            desc = 'Edit bash history file',
+         },
+         {
+            '<space>ed',
+            function() require('telescope.builtin').find_files({ cwd = vim.fn.expand('~/dotfiles') }) end,
+            desc = 'Edit dotfiles',
          },
       },
       init = function()
@@ -51,6 +106,7 @@ return {
             pickers = {
                find_files = {
                   hidden = true,
+                  file_ignore_patterns = { '^%.git/'}
                },
             },
             extensions = {

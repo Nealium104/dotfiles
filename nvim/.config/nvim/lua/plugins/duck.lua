@@ -20,14 +20,24 @@ local pets = {
 }
 
 local keys = {
-   { "<leader>pC", function() require("duck").cook() end, desc = "Cook the newest pet" },
+   -- a count does it that many times: 5<leader>pg hatches five ghosts,
+   -- 3<leader>pC cooks the three newest pets
+   {
+      "<leader>pC",
+      function()
+         for _ = 1, vim.v.count1 do require("duck").cook() end
+      end,
+      desc = "Cook the newest pet",
+   },
    { "<leader>pX", function() require("duck").cook_all() end, desc = "Cook every pet" },
 }
 for _, pet in ipairs(pets) do
    local key, emoji, name, speed = unpack(pet)
    table.insert(keys, {
       "<leader>p" .. key,
-      function() require("duck").hatch(emoji, speed) end,
+      function()
+         for _ = 1, vim.v.count1 do require("duck").hatch(emoji, speed) end
+      end,
       desc = emoji .. " " .. name,
    })
 end

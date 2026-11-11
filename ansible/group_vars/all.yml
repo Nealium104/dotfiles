@@ -94,9 +94,6 @@ packages:
   - mkcert
   - direnv # per-project environment variables, from a .envrc
   - pinentry-curses # rbw asks for the vault password through it
-  # whimsy
-  - sl # a steam locomotive for typing `sl` instead of `ls`
-  - cbonsai # the bonsai at the top of the nvim dashboard
   # from the repos in apt_repos below
   - gh
   - vagrant
@@ -109,9 +106,16 @@ packages:
   - php-zip
   - php-xdebug # nvim's php debugger attaches
 
-# third-party apt repos. the key is re-downloaded and the list file rewritten
-# before the first cache update, so a rotated signing key fixes itself on the
-# next run. name is the file in /etc/apt/sources.list.d
+# nice to have: installed one at a time after packages, and one that fails is
+# listed at the end of the run instead of stopping it
+optional_packages:
+  - sl # a steam locomotive for typing `sl` instead of `ls`
+  - cbonsai # the bonsai at the top of the nvim dashboard
+
+# third-party apt repos. the list file is rewritten before the first cache
+# update; the key is downloaded when it's missing, and again on --upgrade, so
+# a rotated signing key fixes itself there. name is the file in
+# /etc/apt/sources.list.d
 apt_repos:
   - name: github-cli
     key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
