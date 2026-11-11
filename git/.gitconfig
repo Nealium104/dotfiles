@@ -23,6 +23,8 @@
 [diff]
 	tool = difftastic
 	algorithm = histogram
+	# moved lines show as moved, not as a delete and an add
+	colorMoved = default
 [difftool]
 	prompt = false
 [difftool "difftastic"]
@@ -31,6 +33,10 @@
 	difftool = true
 [rebase]
 	autoStash = true
+	# fixup!/squash! commits move into place in `rebase -i`
+	autoSquash = true
+	# branches stacked on the one being rebased move with it
+	updateRefs = true
 [push]
 	autoSetupRemote = true
 [fetch]
@@ -43,6 +49,9 @@
 	sort = -committerdate
 [commit]
 	verbose = true
+[tag]
+	# v1.10 after v1.9, not after v1.1
+	sort = version:refname
 [help]
 	# Mistyped commands (git stuats) ask "Run 'status' instead?" rather than failing
 	autocorrect = prompt

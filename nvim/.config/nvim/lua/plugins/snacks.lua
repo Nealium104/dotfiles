@@ -1,3 +1,6 @@
+-- a dividing line across the dashboard, between its parts
+local rule = { align = "center", text = { { string.rep("─", 80), hl = "footer" } } }
+
 return {
    "folke/snacks.nvim",
    -- The dashboard must load at startup, before other UI plugins.
@@ -54,11 +57,46 @@ return {
    opts = {
       dashboard = {
          enabled = true,
+         -- room for the bonsai, and exactly the width of the key row below
+         width = 80,
          sections = {
-            -- snacks' default layout, with triforce stats between the keys and
-            -- startup time
-            { section = "header" },
-            { section = "keys", gap = 1, padding = 1 },
+            -- a bonsai (in place of the header) with a fortune and triforce stats
+            -- under it, every key on one row between two lines, then the
+            -- startup time. the bonsai and fortune fall back to nothing special
+            -- when their commands (apt cbonsai, fortune-mod) aren't installed
+            function()
+               if vim.fn.executable("cbonsai") == 0 then return { section = "header" } end
+               -- leaves for the season, on the same dates drop.nvim switches its
+               -- theme, so the tree matches what's falling past it
+               local md = tonumber(os.date("%m%d"))
+               local leaves = (md >= 320 and md <= 620) and "❀,✿,&" -- spring blossom
+                  or (md >= 621 and md <= 921) and "&" -- summer
+                  or (md >= 922 and md <= 1220) and "&,%,#" -- autumn
+                  or "*,+,·" -- winter frost
+               -- grows live (-l) for 3-10 seconds, then stays (-p). ttl 0:
+               -- a new tree every time instead of snacks' cached output
+               return {
+                  section = "terminal",
+                  cmd = ("cbonsai -lp -t 0.01 -L 40 -M 5 -c '%s'"):format(leaves),
+                  height = 22,
+                  ttl = 0,
+               }
+            end,
+            function()
+               if vim.fn.executable("fortune") == 0 then return nil end
+               local out = vim.system({ "fortune", "-s" }, { text = true }):wait(500)
+               if out.code ~= 0 or not out.stdout then return nil end
+               -- the footer colour in bold, set here so it follows colorscheme changes
+               local footer = vim.api.nvim_get_hl(0, { name = "SnacksDashboardFooter", link = false })
+               vim.api.nvim_set_hl(0, "SnacksDashboardQuote", vim.tbl_extend("force", footer, { bold = true }))
+               local items = {}
+               for line in out.stdout:gsub("\t", "  "):gmatch("[^\n]+") do
+                  table.insert(items, { align = "center", text = { { vim.trim(line), hl = "SnacksDashboardQuote" } } })
+               end
+               -- a blank line between the fortune and the triforce stats
+               if #items > 0 then items[#items].padding = 1 end
+               return items
+            end,
             function()
                local ok, triforce = pcall(require, "triforce.stats")
                if not ok then return nil end
@@ -73,9 +111,28 @@ return {
                         { "  ·  󰈸 " .. s.current_streak .. "-day streak (best " .. s.longest_streak .. ")", hl = "desc" },
                      },
                   },
-                  { icon = "󰓎 ", key = "p", desc = "Triforce Profile", action = ":Triforce profile", padding = 1 },
                }
             end,
+            rule,
+            -- every key on one row, so the bonsai gets the height. the preset's
+            -- items stay, hidden, so their keymaps still work
+            function(self)
+               local labels = { f = "files", n = "new", g = "grep", r = "recent", c = "config", s = "session", L = "lazy", q = "quit" }
+               local keys = vim.tbl_filter(function(k) return k.enabled ~= false end, vim.deepcopy(self.opts.preset.keys))
+               if pcall(require, "triforce.stats") then
+                  table.insert(keys, #keys, { key = "p", desc = "profile", action = ":Triforce profile" })
+               end
+               local text = {}
+               for i, k in ipairs(keys) do
+                  k.hidden = true
+                  if i > 1 then table.insert(text, { "  " }) end
+                  table.insert(text, { k.key, hl = "key" })
+                  table.insert(text, { " " .. (labels[k.key] or k.desc:lower()), hl = "desc" })
+               end
+               table.insert(keys, { align = "center", text = text })
+               return keys
+            end,
+            rule,
             { section = "startup" },
          },
       },

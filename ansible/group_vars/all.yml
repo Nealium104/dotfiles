@@ -94,6 +94,10 @@ packages:
   - mkcert
   - direnv # per-project environment variables, from a .envrc
   - pinentry-curses # rbw asks for the vault password through it
+  # whimsy
+  - sl # a steam locomotive for typing `sl` instead of `ls`
+  - fortune-mod # a fortune on the nvim dashboard
+  - cbonsai # the bonsai at the top of the nvim dashboard
   # from the repos in apt_repos below
   - gh
   - vagrant
@@ -157,6 +161,8 @@ cargo_packages:
   - { name: sd, bin: sd, version: 1.0.0 }
   - { name: tokei, bin: tokei, version: 15.0.0 }
   - { name: asciinema, bin: asciinema, version: 3.2.0 }
+  - { name: pay-respects, bin: pay-respects, version: 0.9.0 } # `f` fixes the last command
+  - { name: genact, bin: genact, version: 1.6.0 } # looks busy: fake compiles, downloads, deploys
 
 # globally available python tools, ansible installed at install.sh
 uv_tools:

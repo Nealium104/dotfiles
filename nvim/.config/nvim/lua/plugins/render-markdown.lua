@@ -17,6 +17,6 @@ return {
       },
    },
    keys = {
-      { "<leader>p", "<cmd>RenderMarkdown toggle<cr>", desc = "Preview markdown (toggle render)" },
+      { "<leader>um", "<cmd>RenderMarkdown toggle<cr>", desc = "Preview markdown (toggle render)" },
    },
 }

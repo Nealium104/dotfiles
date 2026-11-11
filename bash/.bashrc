@@ -117,6 +117,11 @@ export ANSIBLE_SSH_ARGS='-o ControlMaster=auto -o ControlPersist=60s -o ServerAl
 
 command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
+# `f` suggests a fix for the last command, ctrl-x ctrl-x fixes the line being
+# typed, and an unknown command gets "did you mean" (in place of ubuntu's
+# apt hint). --nocnf would keep ubuntu's
+command -v pay-respects >/dev/null && eval "$(pay-respects bash)"
+
 # after everything that touches the prompt
 command -v direnv >/dev/null && eval "$(direnv hook bash)"
 

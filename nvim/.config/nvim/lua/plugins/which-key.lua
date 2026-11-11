@@ -9,6 +9,7 @@ return {
          { '<leader>f', group = 'find' },
          { '<leader>g', group = 'git' },
          { '<leader>o', group = 'obsidian' },
+         { '<leader>p', group = 'pet' },
          { '<leader>S', group = 'session' },
          { '<leader>t', group = 'trouble' },
          { '<leader>u', group = 'ui/toggles' },
