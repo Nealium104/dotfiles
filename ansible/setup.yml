@@ -311,10 +311,19 @@
         # keyed on uv's own tool directory; --force, so a copy that pipx
         # linked into ~/.local/bin earlier gets taken over
         # uv prefers any python it has downloaded for a project, however old
+        - name: Check the distro python version
+          ansible.builtin.command:
+            cmd: /usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])'
+          register: system_python
+          changed_when: false
+          check_mode: false
+
+        # keyed on the site-packages dir for that python, so a release upgrade
+        # that moves python3 on rebuilds venvs whose packages it can't see
         - name: Install python tools with uv
           ansible.builtin.command:
-            cmd: "{{ ansible_facts.env.HOME }}/.cargo/bin/uv tool install --force --python /usr/bin/python3 {{ item }}"
-            creates: "{{ ansible_facts.env.HOME }}/.local/share/uv/tools/{{ item }}"
+            cmd: "{{ ansible_facts.env.HOME }}/.cargo/bin/uv tool install --force --reinstall --python /usr/bin/python3 {{ item }}"
+            creates: "{{ ansible_facts.env.HOME }}/.local/share/uv/tools/{{ item }}/lib/python{{ system_python.stdout }}"
           loop: "{{ uv_tools }}"
 
         - name: Upgrade uv tools
@@ -666,9 +675,16 @@
         # needs the config stowed above, plus node (npm servers), go (gopls) and
         # python3-venv (python servers) from earlier tasks. plugins go to the
         # versions in lazy-lock.json; --upgrade updates them and rewrites the lockfile
+        #
+        # both nvim tasks run under coreutils timeout so a hung nvim gets killed
+        # (exit 124) instead of stalling the run. ansible's own task timeout gives
+        # up on the task but can leave nvim running behind it
         - name: Install neovim plugins
           ansible.builtin.command:
             argv:
+              - timeout
+              - --kill-after=30s
+              - 15m
               - nvim
               - --headless
               - -c
@@ -679,10 +695,15 @@
           changed_when: "'bootstrap: plugins changed 0' not in nvim_plugins.stdout"
 
         # language servers, debug adapters and treesitter parsers listed in
-        # nvim/.config/nvim/lua/config/tools.lua; only missing ones are installed
+        # nvim/.config/nvim/lua/config/tools.lua; only missing ones are installed.
+        # 40m: a fresh machine installs everything, and bootstrap.lua itself waits
+        # up to 10m each for mason, the parsers and (on --upgrade) parser updates
         - name: Install neovim language servers and parsers
           ansible.builtin.command:
             argv:
+              - timeout
+              - --kill-after=30s
+              - 40m
               - nvim
               - --headless
               - -c

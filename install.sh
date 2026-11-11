@@ -86,9 +86,13 @@ fi
 # ansible-playbook belongs to ansible-core; the ansible package beside it adds
 # the community collections. --force takes over commands an earlier pipx
 # install linked into ~/.local/bin. the distro's python, because left to itself
-# uv prefers any python it has downloaded for a project, however old
-if [ ! -d "$HOME/.local/share/uv/tools/ansible-core" ]; then
-  uv tool install --force --python /usr/bin/python3 --with ansible ansible-core
+# uv prefers any python it has downloaded for a project, however old.
+# keyed on the site-packages dir for the distro's current python, so a
+# release upgrade that moves python3 on (e.g. 3.10 -> 3.12) rebuilds the venv
+# instead of leaving one whose packages its python can no longer see
+py_version=$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+if [ ! -d "$HOME/.local/share/uv/tools/ansible-core/lib/python$py_version" ]; then
+  uv tool install --force --reinstall --python /usr/bin/python3 --with ansible ansible-core
 fi
 
 if $upgrade; then

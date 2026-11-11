@@ -8,11 +8,24 @@
 -- Exits non-zero if an install fails.
 local M = {}
 
+-- An error in a -c command doesn't end a headless nvim: it prints the error and
+-- then waits for input that never comes, so Ansible would wait forever. Any
+-- error in the wrapped function exits with code 1 instead.
+local function exit_on_error(fn)
+   return function(opts)
+      local ok, err = xpcall(fn, debug.traceback, opts)
+      if not ok then
+         io.stderr:write("bootstrap: " .. tostring(err) .. "\n")
+         vim.cmd("cquit 1")
+      end
+   end
+end
+
 -- Plugins at the versions in lazy-lock.json (`upgrade = true`: latest, which
 -- rewrites the lockfile). Prints "bootstrap: plugins changed <n>", counting
 -- plugins that were cloned or moved to another commit; lazy's own output can't
 -- tell a no-op restore from a real one.
-function M.plugins(opts)
+M.plugins = exit_on_error(function(opts)
    opts = opts or {}
    local git = require("lazy.manage.git")
    local plugins = require("lazy.core.config").plugins
@@ -37,9 +50,9 @@ function M.plugins(opts)
    end
    io.stdout:write(("bootstrap: plugins changed %d\n"):format(changed))
    vim.cmd("qall!")
-end
+end)
 
-function M.run(opts)
+M.run = exit_on_error(function(opts)
    opts = opts or {}
    local tools = require("config.tools")
    local installed = 0
@@ -59,7 +72,11 @@ function M.run(opts)
       if not registry.is_installed(name) then table.insert(missing, name) end
    end
    if #missing > 0 then
-      vim.cmd("MasonInstall " .. table.concat(missing, " "))
+      -- a real failure quits nvim with code 1 from inside :MasonInstall. it can
+      -- also throw after every install succeeded: mason echoes installer stderr
+      -- (dotnet's progress, for one) as error messages, which vim.cmd raises.
+      -- so its result is ignored and what actually got installed is checked below
+      pcall(vim.cmd, "MasonInstall " .. table.concat(missing, " "))
       installed = installed + #missing
    end
    -- :MasonInstall skips (without waiting for) packages that the config itself
@@ -71,6 +88,10 @@ function M.run(opts)
       end
       return true
    end, 500)
+   local failed = vim.tbl_filter(function(name) return not registry.is_installed(name) end, missing)
+   if #failed > 0 then
+      error("not installed (see ~/.local/state/nvim/mason.log): " .. table.concat(failed, " "), 0)
+   end
 
    -- Treesitter parsers (nvim-treesitter's install() skips ones already present).
    require("lazy").load({ plugins = { "nvim-treesitter" } })
@@ -83,6 +104,6 @@ function M.run(opts)
    io.stdout:write(("bootstrap: installed %d\n"):format(installed))
    if ok == false then vim.cmd("cquit 1") end
    vim.cmd("qall!")
-end
+end)
 
 return M

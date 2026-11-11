@@ -35,10 +35,16 @@
       - { path: "{{ home }}/.config/wslu", replaced_by: "{{ wsl_open }}" }
       # install.sh runs ansible from uv now. the commands pipx linked that uv
       # doesn't are caught by the broken symlink sweep below
+      # pipx before 1.3 (ubuntu 22.04's) kept venvs in ~/.local/pipx, later
+      # ones in ~/.local/share/pipx
       - path: "{{ home }}/.local/share/pipx/venvs/ansible"
+        replaced_by: "{{ home }}/.local/share/uv/tools/ansible-core"
+      - path: "{{ home }}/.local/pipx/venvs/ansible"
         replaced_by: "{{ home }}/.local/share/uv/tools/ansible-core"
       # setup.yml installs these with uv now
       - path: "{{ home }}/.local/share/pipx/venvs/ansible-lint"
+        replaced_by: "{{ home }}/.local/share/uv/tools/ansible-lint"
+      - path: "{{ home }}/.local/pipx/venvs/ansible-lint"
         replaced_by: "{{ home }}/.local/share/uv/tools/ansible-lint"
       # nvim gets its language servers from mason
       - path: "{{ home }}/.local/bin/nginx-language-server"
@@ -81,6 +87,8 @@
       # install.sh runs ansible from uv
       - { name: ansible, replaced_by: "{{ home }}/.local/bin/ansible-playbook" }
       - { name: ansible-core, replaced_by: "{{ home }}/.local/bin/ansible-playbook" }
+      # the original bootstrap installed ansible with pipx; uv does that job now
+      - { name: pipx, replaced_by: "{{ home }}/.cargo/bin/uv" }
 
   tasks:
     - name: Remove replaced files

@@ -79,6 +79,7 @@ packages:
   - socat
   - util-linux
   - python3-venv # mason needs it for python-based tools
+  - dotnet-sdk-10.0 # mason installs roslyn-language-server (C#) with dotnet
   - shellcheck
   - shfmt # shell formatter, used by nvim (conform)
   - xclip # nvim's clipboard fallback

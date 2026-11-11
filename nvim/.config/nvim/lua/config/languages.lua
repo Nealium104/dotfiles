@@ -35,6 +35,7 @@ return {
       mason = { "roslyn-language-server" }, -- started by roslyn.nvim, not lspconfig
       parsers = { "c_sharp" },
       indent = 4,
+      needs = { "dotnet-sdk-10.0 (apt)" }, -- mason installs roslyn as a nuget tool
    },
    css = {
       filetypes = { "css" },
