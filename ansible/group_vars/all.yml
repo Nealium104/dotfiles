@@ -67,7 +67,7 @@ release_binaries:
     url: "https://github.com/arl/gitmux/releases/download/{{ gitmux_version }}/gitmux_{{ gitmux_version }}_linux_amd64.tar.gz"
     version_flag: -V
 
-packages:
+core_packages:
   - build-essential
   - cmake # for rust tools that have to be built from source
   - git
@@ -106,7 +106,7 @@ packages:
   - php-zip
   - php-xdebug # nvim's php debugger attaches
 
-# nice to have: installed one at a time after packages, and one that fails is
+# nice to have: installed one at a time after core_packages, and one that fails is
 # listed at the end of the run instead of stopping it
 optional_packages:
   - sl # a steam locomotive for typing `sl` instead of `ls`

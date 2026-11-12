@@ -100,9 +100,9 @@
     - name: Update apt cache and install core packages
       become: true
       vars:
-        missing_packages: "{{ packages | reject('in', ansible_facts.packages) | list }}"
+        missing_packages: "{{ core_packages | reject('in', ansible_facts.packages) | list }}"
       ansible.builtin.apt:
-        name: "{{ packages }}"
+        name: "{{ core_packages }}"
         state: "{{ 'latest' if upgrade | bool else 'present' }}"
         update_cache: "{{ upgrade | bool or missing_packages | length > 0 }}"
 

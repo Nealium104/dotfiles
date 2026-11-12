@@ -56,7 +56,7 @@ row webi "$(ver webi --version)" latest
 row claude "$(ver claude --version)" latest
 row tpm "$(git -C "$HOME/.tmux/plugins/tpm" log -1 --format='%h %cs' 2>/dev/null)" latest
 
-apt_packages=$(awk '/^packages:/ { on = 1; next } on && /^ *- / { print $2; next } on && /^ *#/ { next } on { exit }' "$vars")
+apt_packages=$(awk '/^core_packages:/ { on = 1; next } on && /^ *- / { print $2; next } on && /^ *#/ { next } on { exit }' "$vars")
 apt_packages+=" docker-ce"
 for package in $apt_packages; do
   row "$package" "$(apt_ver "$package")" latest
