@@ -10,6 +10,8 @@ config.wsl_domains = {
     },
 }
 config.default_domain = 'WSL:Ubuntu'
+-- file watching doesn't work between WSL2 and Windows
+-- On a Windows machine, use ctrl+shift+r
 config.automatically_reload_config = true
 
 -- window
@@ -38,7 +40,14 @@ config.visual_bell = {
 }
 
 -- text
-config.font = wezterm.font('Hasklug Nerd Font Mono')
+config.font = wezterm.font_with_fallback {
+   -- https://wezterm.org/config/lua/wezterm/font.html
+   -- Weights use names (Light, Medium, ExtraBold, etc.)
+   { family = 'DepartureMono Nerd Font', weight = 'Regular', scale=0.9 },
+   { family = 'CaskaydiaCove Nerd Font Mono', weight = 'Light', scale=1.1 },
+   { family = 'JetBrains Mono', weight = 'Regular'} -- included with wezterm
+}
+
 config.font_size = 14
 
 -- event handlers

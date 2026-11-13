@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+required=(git gh)
+missing=()
+
+for cmd in "${required[@]}"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        missing+=("$cmd")
+    fi
+done
+
+if ((${#missing[@]} > 0)); then
+    echo "Missing required commands: ${missing[*]}" >&2
+    exit 1
+fi
+
+usage() {
+    echo "Usage: ${0##*/} <issue-number>"
+}
+
+if [[ $# -ne 1 ]]; then
+    usage >&2
+    exit 2
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Not inside a git repository" >&2
+    exit 1
+fi
+
+issue=$1
+pattern="^[0-9]+$"
+
+if ! [[ $issue =~ $pattern ]]; then
+    echo "Given issue must be a number (e.g., 42)" >&2
+    exit 1
+fi
+
+declare -l title
+title="$(gh issue view "$issue" --json title --jq .title)"
+title=$(tr -cs '[:alnum:]' '-' <<< "${title,,}")
+title=${title%-}
+title=${title#-}
+
+output="$issue"
+output+="-$title"
+
+echo "$output"
