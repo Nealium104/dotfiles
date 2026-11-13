@@ -24,7 +24,7 @@ return {
          local animate = require('mini.animate')
          animate.setup({
             cursor = {
-               enable = true,
+               enable = false, -- replaced by smear-cursor.nvim
                -- Easing: linear, quadratic, cubic, quartic, exponential (or none)
                timing = animate.gen_timing.cubic({ easing = 'out', duration = 120, unit = 'total' }),
                -- shape of cursor trail: line (default), angle, walls, spiral

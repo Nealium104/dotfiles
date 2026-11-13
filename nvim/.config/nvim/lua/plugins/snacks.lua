@@ -229,7 +229,7 @@ return {
             bottom = 1,
          },
       },
-      scope = { enabled = true },
+      scope = { enabled = true, cursor = false },
       indent = {
          enabled = true,
          indent = {
