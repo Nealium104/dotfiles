@@ -1,9 +1,12 @@
 return {
    "sphamba/smear-cursor.nvim",
    event = "VeryLazy",
+   keys = {
+      { "<leader>us", "<cmd>SmearCursorToggle<cr>", desc = "Toggle smear cursor" },
+   },
    opts = {
       stiffness = 0.9,
-      trailing_stiffness = 0.5,
+      trailing_stiffness = 0.2,
       distance_stop_animating = 0.5,
       smear_to_cmd = false,
       particles_enabled = true,
