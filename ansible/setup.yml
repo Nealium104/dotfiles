@@ -653,6 +653,7 @@
             - "{{ ansible_facts.env.HOME }}/.bashrc"
             - "{{ ansible_facts.env.HOME }}/.bash_aliases"
             - "{{ ansible_facts.env.HOME }}/.inputrc"
+            - "{{ ansible_facts.env.HOME }}/.local/bin/issue-branch"
             - "{{ ansible_facts.env.HOME }}/.gitconfig"
             - "{{ ansible_facts.env.HOME }}/.gitconfig-personal"
             - "{{ ansible_facts.env.HOME }}/.config/bat"

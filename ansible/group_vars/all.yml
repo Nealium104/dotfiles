@@ -214,6 +214,7 @@ nerd_fonts:
 stow_packages:
   - bash
   - bat
+  - bin # scripts linked into ~/.local/bin
   - bottom
   - btop # only the theme; btop rewrites btop.conf itself, so that isn't stowed
   - fastfetch
