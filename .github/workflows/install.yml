@@ -15,7 +15,7 @@ jobs:
   # a hosted runner is plain x86-64 Ubuntu with passwordless sudo: the same
   # path a non-WSL machine takes. the WSL-only steps can't be covered here
   install:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
       - name: Fresh install
