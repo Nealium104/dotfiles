@@ -47,7 +47,7 @@ config.visual_bell = {
 config.font = wezterm.font_with_fallback {
    -- https://wezterm.org/config/lua/wezterm/font.html
    -- Weights use names (Light, Medium, ExtraBold, etc.)
-   { family = 'DepartureMono Nerd Font', weight = 'Regular', scale=0.9 },
+   { family = 'RobotoMono Nerd Font Mono', weight = 'Regular', scale=0.9 },
    { family = 'CaskaydiaCove Nerd Font Mono', weight = 'Light', scale=1.1 },
    { family = 'JetBrains Mono', weight = 'Regular'} -- included with wezterm
 }

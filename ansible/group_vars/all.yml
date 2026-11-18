@@ -2,6 +2,12 @@
 # Will set everything to pinned version, everything unpinned to latest
 upgrade: false
 
+# run modules with the distro's python, not the uv venv ansible itself runs
+# from. otherwise become tasks run that venv's python as root, which leaves
+# root-owned __pycache__ in it, and the next `uv tool install --reinstall`
+# can't delete them (permission denied on ~/.local/share/uv/tools/ansible-core)
+ansible_python_interpreter: /usr/bin/python3
+
 # a release tag; "stable" can't be compared against `nvim --version`
 neovim_version: v0.12.3
 
