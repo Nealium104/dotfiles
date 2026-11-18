@@ -10,6 +10,9 @@ path_append /usr/local/go/bin
 path_append "$HOME/go/bin"
 export PATH
 
+# local, machine specific settings
+[ -f ~/.bashrc.local ] && . ~/.bashrc.local
+
 # ansible hard-fails if this points at a missing file
 # only set on machines that actually have the script
 if [ -f "$HOME/bin/vaultpw.sh" ]; then

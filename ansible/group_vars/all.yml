@@ -77,6 +77,8 @@ core_packages:
   - jq
   - curl
   - socat
+  - bubblewrap
+  - keyutils
   - util-linux
   - python3-venv # mason needs it for python-based tools
   - dotnet-sdk-10.0 # mason installs roslyn-language-server (C#) with dotnet
@@ -90,10 +92,12 @@ core_packages:
   - yamllint
   - pandoc
   - pv
+  - rsync
   - moreutils
   - mkcert
   - direnv # per-project environment variables, from a .envrc
   - pinentry-curses # rbw asks for the vault password through it
+  - keepassxc-minimal # for keepassxc-cli; drops the browser integration and the other extras in keepassxc-full
   # from the repos in apt_repos below
   - gh
   - vagrant
@@ -172,6 +176,7 @@ uv_tools:
   - ansible-lint
   - ty
   - ruff # python formatter/linter, used by nvim (conform)
+  - yt-dlp # here, not apt: it breaks when youtube changes, so it needs --upgrade
 
 # globally available node tools; language servers in nvim
 npm_packages:

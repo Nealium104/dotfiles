@@ -29,7 +29,11 @@ config.window_padding = {
     bottom = 0,
 }
 config.colors = {
-    visual_bell = '#313d4e'
+    visual_bell = '#313d4e',
+    -- the cursor in the text colour, with the background colour under it
+    cursor_bg = '#cad3f5',
+    cursor_border = '#cad3f5',
+    cursor_fg = '#24273a',
 }
 config.audible_bell = 'Disabled'
 config.visual_bell = {

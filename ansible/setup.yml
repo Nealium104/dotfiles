@@ -485,6 +485,33 @@
                 dest: "{{ windows_profile.stdout }}/.wezterm.lua"
                 backup: true
 
+            # windows-native zellij reads its config straight from WSL, the way
+            # the wezterm loader does. kdl has no include, so this points
+            # zellij at the file instead
+            - name: Point windows zellij at the config in WSL
+              when: (windows_profile.stdout ~ '/AppData/Local/Zellij/zellij.exe') is exists
+              block:
+                - name: Find the windows path to the zellij config
+                  ansible.builtin.command:
+                    argv: [wslpath, -w, "{{ dotfiles_dir }}/zellij/config.kdl"]
+                  register: zellij_config_win
+                  changed_when: false
+                  check_mode: false
+
+                - name: Set ZELLIJ_CONFIG_FILE for the windows user
+                  ansible.builtin.command:
+                    argv:
+                      - powershell.exe
+                      - -NoProfile
+                      - -Command
+                      - >-
+                        $want = '{{ zellij_config_win.stdout | trim }}';
+                        if ([Environment]::GetEnvironmentVariable('ZELLIJ_CONFIG_FILE', 'User') -ne $want) {
+                        [Environment]::SetEnvironmentVariable('ZELLIJ_CONFIG_FILE', $want, 'User'); 'changed' }
+                    chdir: /mnt/c
+                  register: zellij_env
+                  changed_when: "'changed' in zellij_env.stdout"
+
             # asked of windows rather than built from the profile path:
             # Documents may be redirected into OneDrive
             - name: Find the windows Documents and Startup folders

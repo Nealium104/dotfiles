@@ -1,5 +1,5 @@
 return {
-   "DrKJeff16/triforce.nvim",
+   "gisketch/triforce.nvim",
    event = "VeryLazy",
    dependencies = { "nvzone/volt" },
    keys = {

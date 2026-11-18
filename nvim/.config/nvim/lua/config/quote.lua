@@ -2,12 +2,12 @@
 -- picked between evenly so a few typed quotes aren't buried under hundreds of
 -- highlights:
 --
--- Kindle highlights: one note per book in "6. Kindle Highlights", written by
+-- Kindle highlights: one note per book in "Library/Kindle Highlights", written by
 -- the Kindle plugin: frontmatter with kindle-title and kindle-author, then each
 -- highlight between `---` lines, ending in "— location: [...]() ^ref-...".
 --
 -- Quote notes: made from Templates/Quote Template.md and kept in
--- "2. Content Notes/Quotes": `type: quote` with Author and source_title, the
+-- "Library/Quotes": `type: quote` with author and source_title, the
 -- quote itself as the note's body.
 --
 -- The vault lives on the Windows drive, where WSL reads files slowly, so this
@@ -15,8 +15,8 @@
 -- looks for quote notes in their folder rather than across the whole vault.
 local M = {}
 
-M.dir = vim.fn.expand("~/obsidian/6. Kindle Highlights")
-M.quotes_dir = vim.fn.expand("~/obsidian/2. Content Notes/Quotes")
+M.dir = vim.fn.expand("~/obsidian/Library/Kindle Highlights")
+M.quotes_dir = vim.fn.expand("~/obsidian/Library/Quotes")
 
 -- Long passages and fragments are left out. Highlights also catch things that
 -- aren't quotes at all: section titles, exercises, links
@@ -44,11 +44,20 @@ local function usable(text)
 end
 
 -- a frontmatter value, including the indented multi-line form (`key: >-`
--- then the value on the lines below) the plugin uses for long titles
+-- then the value on the lines below) the plugin uses for long titles, and a
+-- list (`key:` then `  - item` lines), joined with ", "
 local function field(content, key)
    local value = content:match("\n" .. key .. ": *([^\n]*)")
    if not value then return nil end
-   if value:match("^[>|]%-?$") then
+   if value == "" then
+      local items = {}
+      for line in (content:match("\n" .. key .. ": *\n(.*)$") or ""):gmatch("[^\n]+") do
+         local item = line:match("^%s+%- *(.-)%s*$")
+         if not item then break end
+         table.insert(items, item)
+      end
+      value = table.concat(items, ", ")
+   elseif value:match("^[>|]%-?$") then
       local lines = {}
       for line in content:match("\n" .. key .. ": *[^\n]*\n(.-)\n%S"):gmatch("[^\n]+") do
          table.insert(lines, vim.trim(line))
@@ -134,7 +143,7 @@ function M.from_quote_note(path)
    end
    local text = vim.trim(table.concat(lines, "\n"))
    if text == "" or #text > M.max_chars then return nil end
-   return { text = text, title = field(content, "source_title"), author = field(content, "Author") }
+   return { text = text, title = field(content, "source_title"), author = field(content, "author") }
 end
 
 -- random .md files in a folder, a few at most, until `pick` returns something
