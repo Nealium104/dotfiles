@@ -177,6 +177,11 @@ cargo_packages:
   - { name: pay-respects, bin: pay-respects, version: 0.9.0 } # `f` fixes the last command
   - { name: genact, bin: genact, version: 1.6.0 } # looks busy: fake compiles, downloads, deploys
 
+# cargo_packages for native linux only. WSL uses the windows zellij.exe, which
+# reads zellij/config.kdl through ZELLIJ_CONFIG_FILE (setup.yml)
+cargo_packages_native:
+  - { name: zellij, bin: zellij, version: 0.46.0 }
+
 # globally available python tools, ansible installed at install.sh
 uv_tools:
   - ansible-lint

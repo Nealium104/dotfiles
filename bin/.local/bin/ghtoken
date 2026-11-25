@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# -l: lock, drop the cached token
+[[ ${1-} == -l ]] && exec keyctl purge user gh >/dev/null
+
+id=$(keyctl search @s user gh 2>/dev/null) && exec keyctl pipe "$id"
+
+[[ ${1-} == -n ]] && exit 1
+
+if ! { exec 3</dev/tty; } 2>/dev/null; then
+    echo "ghtoken: needs an interactive terminal" >&2
+    exit 1
+fi
+
+: "${KDBX:?ghtoken: KDBX is not set}"
+
+printf 'keepass (github token) locked. Password (hidden) > ' >/dev/tty
+tok=$(keepassxc-cli show -q -s -a Password "$KDBX" "github-token" <&3) || exit 1
+printf '\n' >/dev/tty
+[[ -n $tok ]] || { echo "ghtoken: empty token" >&2; exit 1; }
+
+id=$(printf %s "$tok" | keyctl padd user gh @u)
+
+ttl=${GHTOKEN_TTL:-3600}
+keyctl timeout "$id" "$ttl" || { keyctl unlink "$id" @u >/dev/null; exit 1; }
+printf 'github token cached for %dm. Lock now with: ghtoken -l\n' "$((ttl / 60))" >/dev/tty
+printf '%s\n' "$tok"

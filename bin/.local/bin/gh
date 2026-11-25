@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+real=/usr/bin/gh
+
+if [[ -z ${GH_TOKEN-} ]]; then
+    if tok=$(ghtoken -n 2>/dev/null); then
+        :
+    elif [[ -t 0 && -t 2 ]] && tok=$(ghtoken); then
+        :
+    else
+        tok=
+    fi
+    [[ -n $tok ]] && export GH_TOKEN=$tok
+fi
+
+exec "$real" "$@"

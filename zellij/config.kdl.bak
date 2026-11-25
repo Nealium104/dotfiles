@@ -1,0 +1,263 @@
+//ansible/setup.yml sets the windows user's ZELLIJ_CONFIG_FILE
+// to this file's \\wsl.localhost path. On native linux it links this file
+// to ~/.config/zellij/config.kdl.
+
+// Print the full preset with `zellij setup --dump-keybinds unlock-first`.
+keybinds preset="unlock-first-custom" {
+    shared_among "normal" "locked" {
+        bind "Alt Shift o" {
+            Run "bash" "-lc" "cd ~ && exec keyctl session ops bash -l" {
+                floating true
+                close_on_exit true
+                name "OPS"
+            };
+        }
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
+    }
+    shared {
+        bind "F1" "Alt ?" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "4"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    normal {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    locked {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    resize {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    pane {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    tab {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    scroll {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    entersearch {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    search {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    renametab {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    renamepane {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    session {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    move {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    prompt {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    tmux {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+    renamesession {
+        bind "F1" {
+            MessagePlugin "compact-bar" {
+                name "toggle_tooltip"
+                payload "1"
+                floating false
+                tooltip "F1"
+            }
+        }
+    }
+}
+
+plugins {
+    about location="zellij:about"
+    compact-bar location="zellij:bars" {
+        role "compact-bar"
+        tooltip "F1"
+    }
+    configuration location="zellij:configuration"
+    context-menu location="zellij:context-menu"
+    filepicker location="zellij:strider" {
+        cwd "/"
+    }
+    plugin-manager location="zellij:plugin-manager"
+    prompt location="zellij:prompt"
+    session-manager location="zellij:session-manager"
+    status-bar location="zellij:bars" {
+        role "status-bar"
+    }
+    strider location="zellij:strider"
+    tab-bar location="zellij:bars" {
+        role "tab-bar"
+    }
+    welcome-screen location="zellij:session-manager" {
+        welcome_screen true
+    }
+}
+
+load_plugins {
+    zellij:bars {
+        role "link"
+    }
+}
+
+web_client {
+    font "monospace"
+}
+
+theme "catppuccin-macchiato"
+// "bash" on both: on windows it's System32\bash.exe, which starts WSL
+default_shell "bash"
+
+default_layout "default"
+
+pane_frames true
+mouse_mode true
+scroll_buffer_size 50000
+
+session_serialization true
+serialize_pane_viewport true
+
+stacked_resize true
+stacked_pane_list false
+
+ui {
+  pane_frames {
+    border_style "heavy"
+    hide_session_name true
+  }
+}
+
+terminal {
+    font "RobotoMono Nerd Font"
+    font_size 14
+    cursor_style "block"
+    cursor_blink false
+    startup_mode "maximized"
+    opacity 0.9
+    blur true
+    padding 8
+    hide_pointer_while_typing true
+}
+
+default_cwd "~/workspaces"
+web_sharing "on"
+web_server false
+explicit_theme_hue "dark"
+pane_frame_style "full"
+attach_to_session true

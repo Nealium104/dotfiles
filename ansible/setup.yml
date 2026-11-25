@@ -186,7 +186,7 @@
             cmd: >-
               {{ ansible_facts.env.HOME }}/.cargo/bin/cargo binstall --no-confirm --locked
               --strategies crate-meta-data,compile
-              {% for crate in cargo_packages %}{{ crate.name }}@{{ crate.version }} {% endfor %}
+              {% for crate in cargo_packages + ([] if is_wsl else cargo_packages_native) %}{{ crate.name }}@{{ crate.version }} {% endfor %}
           register: cargo_install
           changed_when: >-
             'Installing binaries' in cargo_install.stdout + cargo_install.stderr
@@ -487,18 +487,20 @@
 
             # windows-native zellij reads its config straight from WSL, the way
             # the wezterm loader does. kdl has no include, so this points
-            # zellij at the file instead
+            # zellij at the whole zellij/ dir, which also gets it layouts/
+            # (a layout_dir in config.kdl can't name one path for both OSes).
+            # ZELLIJ_CONFIG_FILE was the old way; it's removed if still set
             - name: Point windows zellij at the config in WSL
               when: (windows_profile.stdout ~ '/AppData/Local/Zellij/zellij.exe') is exists
               block:
-                - name: Find the windows path to the zellij config
+                - name: Find the windows path to the zellij config dir
                   ansible.builtin.command:
-                    argv: [wslpath, -w, "{{ dotfiles_dir }}/zellij/config.kdl"]
+                    argv: [wslpath, -w, "{{ dotfiles_dir }}/zellij"]
                   register: zellij_config_win
                   changed_when: false
                   check_mode: false
 
-                - name: Set ZELLIJ_CONFIG_FILE for the windows user
+                - name: Set ZELLIJ_CONFIG_DIR for the windows user
                   ansible.builtin.command:
                     argv:
                       - powershell.exe
@@ -506,8 +508,10 @@
                       - -Command
                       - >-
                         $want = '{{ zellij_config_win.stdout | trim }}';
-                        if ([Environment]::GetEnvironmentVariable('ZELLIJ_CONFIG_FILE', 'User') -ne $want) {
-                        [Environment]::SetEnvironmentVariable('ZELLIJ_CONFIG_FILE', $want, 'User'); 'changed' }
+                        if ([Environment]::GetEnvironmentVariable('ZELLIJ_CONFIG_DIR', 'User') -ne $want) {
+                        [Environment]::SetEnvironmentVariable('ZELLIJ_CONFIG_DIR', $want, 'User'); 'changed' }
+                        if ($null -ne [Environment]::GetEnvironmentVariable('ZELLIJ_CONFIG_FILE', 'User')) {
+                        [Environment]::SetEnvironmentVariable('ZELLIJ_CONFIG_FILE', $null, 'User'); 'changed' }
                     chdir: /mnt/c
                   register: zellij_env
                   changed_when: "'changed' in zellij_env.stdout"
@@ -720,6 +724,24 @@
           loop: "{{ stow_packages }}"
           register: stow_result
           changed_when: "'LINK' in stow_result.stderr"
+
+        # zellij/ isn't a stow package (windows zellij.exe reads it in place on
+        # WSL), so native linux links its config here instead
+        - name: Link the zellij config on native linux
+          when: not is_wsl
+          block:
+            - name: Ensure zellij config directory exists
+              ansible.builtin.file:
+                path: "{{ ansible_facts.env.HOME }}/.config/zellij"
+                state: directory
+                mode: '0755'
+
+            - name: Link zellij config.kdl and layouts
+              ansible.builtin.file:
+                src: "{{ dotfiles_dir }}/zellij/{{ item }}"
+                dest: "{{ ansible_facts.env.HOME }}/.config/zellij/{{ item }}"
+                state: link
+              loop: [config.kdl, layouts]
 
         # needs the config stowed above, plus node (npm servers), go (gopls) and
         # python3-venv (python servers) from earlier tasks. plugins go to the

@@ -103,6 +103,10 @@ fi
 
 command -v starship >/dev/null && eval "$(starship init bash)"
 
+set_win_title() {
+    printf '\e]2;%s/a' "${PWD##*/}"
+}
+
 export EDITOR=nvim
 
 # Config for WezTerm

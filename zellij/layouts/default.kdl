@@ -1,0 +1,11 @@
+// Overrides zellij's built-in "default" layout (config.kdl: default_layout).
+// Started as a copy of `zellij setup --dump-layout default`.
+layout {
+    pane size=1 borderless=true {
+        plugin location="tab-bar"
+    }
+    pane
+    pane size=1 borderless=true {
+        plugin location="status-bar"
+    }
+}

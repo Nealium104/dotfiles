@@ -18,13 +18,14 @@ return {
       new_notes_location = "notes_subdir",
       templates = { folder = "Templates", date_format = "YYYY-MM-DD", time_format = "HH:mm" },
       daily_notes = {
-         folder = "1. Inbox/Daily",
+         folder = "Journal/Daily",
          date_format = "YYYY-MM-DD",
-         template = "Daily.md",
+         template = "Daily Template.md",
          workdays_only = false,
       },
       -- render-markdown.nvim handles display; Obsidian handles checkbox changes.
-      ui = { enable = false },
+      -- ui = { enable = false },
+      ui = { enable = true },
       checkbox = { order = { " ", "x", ">", "~", "!" } },
       picker = { name = "telescope.nvim", note_mappings = { new = "<C-x>" } },
       callbacks = {
